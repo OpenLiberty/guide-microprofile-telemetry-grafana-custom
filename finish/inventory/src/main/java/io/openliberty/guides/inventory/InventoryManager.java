@@ -91,9 +91,9 @@ public class InventoryManager {
     // tag::addMethod[]
     // tag::spanAttribute1[]
     public void add(@SpanAttribute("hostname") String host,
+    // end::spanAttribute1[]
                     Properties systemProps,
                     String health) {
-    // end::spanAttribute1[]
         Properties props = new Properties();
         props.setProperty("os.name", systemProps.getProperty("os.name"));
         props.setProperty("user.name", systemProps.getProperty("user.name"));
@@ -104,7 +104,7 @@ public class InventoryManager {
 
     // tag::updateWithSpan[]
     @WithSpan("Inventory Manager Update")
-    // tag::updateWithSpan[]
+    // end::updateWithSpan[]
     // tag::updateMethod[]
     // tag::spanAttribute2[]
     public void update(@SpanAttribute("hostname") String host, String health) {

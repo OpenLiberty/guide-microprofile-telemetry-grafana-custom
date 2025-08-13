@@ -72,9 +72,9 @@ public class InventoryManager {
     // tag::addMethod[]
     // tag::spanAttribute1[]
     public void add(@SpanAttribute("hostname") String host,
+    // end::spanAttribute1[]
                     Properties systemProps,
                     String health) {
-    // end::spanAttribute1[]
         Properties props = new Properties();
         props.setProperty("os.name", systemProps.getProperty("os.name"));
         props.setProperty("user.name", systemProps.getProperty("user.name"));
