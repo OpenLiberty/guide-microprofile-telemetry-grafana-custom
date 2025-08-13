@@ -2,7 +2,7 @@
 
     <featureManager>
         <platform>jakartaee-10.0</platform>
-        <platform>microprofile-7.0</platform>
+        <platform>microprofile-7.1</platform>
         <feature>cdi</feature>
         <feature>jsonb</feature>
         <feature>jsonp</feature>
@@ -18,14 +18,8 @@
                   httpsPort="${https.port}"
                   id="defaultHttpEndpoint" host="*" />
 
-    <!-- tag::webApplication[] -->
     <webApplication location="guide-microprofile-telemetry-inventory.war"
-                    contextRoot="/">
-        <!-- tag::thirdParty[] -->
-        <classloader apiTypeVisibility="+third-party"/>
-        <!-- end::thirdParty[] -->
-    </webApplication>
-    <!-- end::webApplication[] -->
+                    contextRoot="/" />
 
     <logging consoleLogLevel="INFO" />
 
