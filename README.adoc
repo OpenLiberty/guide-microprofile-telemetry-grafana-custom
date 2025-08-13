@@ -219,19 +219,19 @@ MicroProfile Telemetry automatically instruments Jakarta RESTful Web Services an
 
 Navigate to the `start` directory to begin.
 
-inventory/server.xml
-[source, xml, linenums, role='code_column hide_tags=thirdParty']
-----
-include::finish/inventory/src/main/liberty/config/server.xml[]
-----
-
 system/server.xml
 [source, xml, linenums, role='code_column hide_tags=thirdParty']
 ----
 include::finish/system/src/main/liberty/config/server.xml[]
 ----
 
-The `mpTelemetry` feature, which provides MicroProfile Telemetry support in Open Liberty, is already enabled for both the [hotspot=mpTelemetry file=0]`system` and [hotspot=mpTelemetry file=0]`inventory` services. OpenTelemetry is also enabled for both services by setting the `otel.sdk.disabled` property to `false`.
+inventory/server.xml
+[source, xml, linenums, role='code_column hide_tags=thirdParty']
+----
+include::finish/inventory/src/main/liberty/config/server.xml[]
+----
+
+The `mpTelemetry` feature, which provides MicroProfile Telemetry support in Open Liberty, is already enabled for both the [hotspot=mpTelemetry file=0]`system` and [hotspot=mpTelemetry file=1]`inventory` services. OpenTelemetry is also enabled for both services by setting the `otel.sdk.disabled` property to `false`.
 
 Start the services to begin collecting telemetry data.
 
