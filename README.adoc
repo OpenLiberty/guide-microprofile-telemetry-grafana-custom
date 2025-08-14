@@ -19,10 +19,10 @@
 :common-includes: https://raw.githubusercontent.com/OpenLiberty/guides-common/prod
 :page-related-guides: [ 'microprofile-telemetry-jaeger', 'microprofile-metrics', 'microprofile-health' ]
 :imagesdir: /img/guide/{projectid}
-:page-seo-title: Adding custom telemetry to Java microservices using MicroProfile Telemetry and Grafana
-:page-seo-description: A tutorial on how to manually instrument Java microservices with MicroProfile Telemetry to collect custom spans in traces, and custom metrics, and visualize them with the Grafana stack (`grafana/otel-lgtm` Docker image).
+:page-seo-title: Adding custom tracing and metrics to Java microservices with MicroProfile Telemetry and Grafana
+:page-seo-description: A tutorial on how to manually instrument Java microservices with MicroProfile Telemetry in Open Liberty to collect custom spans in traces, custom metrics, and visualize them with the Grafana stack built on the grafana/otel-lgtm Docker image.
 :source-highlighter: prettify
-= Extending observability in microservices with custom tracing and metrics using OpenTelemetry and Grafana
+= Adding custom tracing and metrics for microservice observability using OpenTelemetry and Grafana
 
 [.hidden]
 NOTE: This repository contains the guide documentation source. To view the guide in published form, view it on the https://openliberty.io/guides/{projectid}.html[Open Liberty website].
