@@ -371,6 +371,10 @@ For more information about OpenTelemetry distributed tracing, see the https://ww
 To see these spans and events, visit the http://localhost:9081/inventory/systems/localhost URL and open the Grafana dashboard at the http://localhost:3000 URL. In the **Explore** view, select the **Tempo** data source and **Run query**. Select a trace ID with the `GET /inventory/systems/{hostname}` name that you just generated. You should see the `GettingProperties` span:
 
 image::inventory_getting_properties_span.png[Inventory Manager GettingProperties span,align="center",align="center"]
+
+Expand the `GettingProperties` span and check the **Events** section to see the `Received properties` event:
+
+image::inventory_received_properties_event.png[Inventory Manager Received properties event,align="center",align="center"]
 {empty} +
 
 To test a failure case, go to the http://localhost:9081/inventory/systems/unknown URL and run the same trace query in Grafana. Select a trace ID with the `GET /inventory/systems/{hostname}` name that you just generated. The trace contains two spans from the `inventory` service, including the `GettingProperties` span. Expand this span and check the **Events** section to see the `Cannot get properties` event:
