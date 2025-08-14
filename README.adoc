@@ -7,7 +7,7 @@
 // IBM Corporation
 //
 :page-layout: guide-multipane
-:projectid: microprofile-telemetry-grafana-manual
+:projectid: microprofile-telemetry-grafana-custom
 :page-duration: 25 minutes
 :page-releasedate: 2025-06-01
 :page-guide-category: microprofile
