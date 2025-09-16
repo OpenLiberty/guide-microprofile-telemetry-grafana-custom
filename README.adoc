@@ -425,7 +425,7 @@ The [hotspot=counterBuilder file=0]`Meter.counterBuilder()` method defines a cou
 
 The [hotspot=histogramBuilder file=0]`Meter.histogramBuilder()` method defines a histogram instrument named [hotspot=schedulerDuration file=0]`inventory.health.check.scheduler.duration`. This metric measures the time taken for each scheduled health check run. The [hotspot=start file=0]`start` time is captured when the [hotspot=performHealthChecks file=0]`performHealthChecks()` method begins, and the [hotspot=duration file=0]`duration` is calculated and recorded when the run completes.
 
-When naming metrics, follow OpenTelemetry's https://opentelemetry.io/docs/specs/semconv/general/metrics/[general naming guidelines] are followed to ensure compatibility across observability tools.
+When naming metrics, OpenTelemetry's https://opentelemetry.io/docs/specs/semconv/general/metrics/[general naming guidelines] are followed to ensure compatibility across observability tools.
 
 [role="code_command hotspot file=1", subs="quotes"]
 ----
