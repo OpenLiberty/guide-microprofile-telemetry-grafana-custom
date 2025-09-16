@@ -17,7 +17,7 @@
 :page-tags: ['microprofile']
 :page-permalink: /guides/{projectid}
 :common-includes: https://raw.githubusercontent.com/OpenLiberty/guides-common/prod
-:page-related-guides: [ 'microprofile-telemetry-jaeger', 'microprofile-metrics', 'microprofile-health' ]
+:page-related-guides: [ 'microprofile-telemetry-grafana-automatic', 'microprofile-telemetry-jaeger', 'microprofile-metrics', 'microprofile-health' ]
 :imagesdir: /img/guide/{projectid}
 :page-seo-title: Adding custom tracing and metrics to Java microservices with MicroProfile Telemetry and Grafana
 :page-seo-description: A tutorial on how to manually instrument Java microservices with MicroProfile Telemetry in Open Liberty to collect custom spans in traces, custom metrics, and visualize them with the Grafana stack built on the grafana/otel-lgtm Docker image.
@@ -57,7 +57,14 @@ Start a container from the https://hub.docker.com/r/grafana/otel-lgtm[grafana/ot
 
 [role="command"]
 ----
-docker run -p 3000:3000 -p 4317:4317 -p 4318:4318 --rm -ti grafana/otel-lgtm
+docker run -d --name otel-lgtm -p 3000:3000 -p 4317:4317 -p 4318:4318 --rm -ti grafana/otel-lgtm
+----
+
+You can monitor the container startup by viewing its logs:
+
+[role="command"]
+----
+docker logs otel-lgtm
 ----
 
 It may take a minute for the container to start. After you see the following message, your observability stack is ready:
@@ -67,7 +74,7 @@ It may take a minute for the container to start. After you see the following mes
 The OpenTelemetry collector and the Grafana LGTM stack are up and running.
 ----
 
-Once the container is running, you can access the Grafana dashboard at the http://localhost:3000 URL.
+When the container is running, you can access the Grafana dashboard at the http://localhost:3000 URL.
 
 // =================================================================================================
 // Getting started
@@ -144,7 +151,7 @@ The defaultServer server is ready to run a smarter planet.
 
 When both services are running, navigate your browser to the http://localhost:9081/inventory/systems/localhost URL.
 
-When you visit this endpoint, it sends one HTTP GET request to the `inventory` service, which then makes two outbound GET requests to the `system` service: one to the `/system/properties` endpoint and another to the `/health` endpoint.
+When you visit this endpoint, it sends an HTTP GET request to the `inventory` service. The `inventory` service then makes two outbound GET requests to the `system` service. One request goes to the `/system/properties` endpoint, and the other goes to the `/health` endpoint.
 
 In addition, the `inventory` service automatically pings the `system` service every 30 seconds to refresh the health status of all systems in the inventory.
 
@@ -231,7 +238,19 @@ inventory/server.xml
 include::finish/inventory/src/main/liberty/config/server.xml[]
 ----
 
-The `mpTelemetry` feature, which provides MicroProfile Telemetry support in Open Liberty, is already enabled for both the [hotspot=mpTelemetry file=0]`system` and [hotspot=mpTelemetry file=1]`inventory` services. OpenTelemetry is also enabled for both services by setting the `otel.sdk.disabled` property to `false`.
+system/bootstrap.properties
+[source, Text, linenums, role='code_column']
+----
+include::finish/system/src/main/liberty/config/bootstrap.properties[]
+----
+
+inventory/bootstrap.properties
+[source, Text, linenums, role='code_column']
+----
+include::finish/inventory/src/main/liberty/config/bootstrap.properties[]
+----
+
+The `mpTelemetry` feature, which provides MicroProfile Telemetry support in Open Liberty, is already enabled for both the [hotspot=mpTelemetry file=0]`system` and [hotspot=mpTelemetry file=1]`inventory` services. OpenTelemetry is also enabled by setting the `otel.sdk.disabled` property to `false` for both the [hotspot=disabled file=2]`system` and [hotspot=disabled file=3]`inventory` services.
 
 Start the services to begin collecting telemetry data.
 
@@ -317,7 +336,7 @@ InventoryManager.java
 include::staging/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
 ----
 
-The [hotspot=listMethod file=0]`list()`, [hotspot=addMethod file=0]`add()`, and [hotspot=updateMethod file=0]`update()` methods are annotated with the [hotspot=addWithSpan hotspot=listWithSpan hotspot=updateWithSpan file=0]`@WithSpan` annotation. The [hotspot=listMethod file=0]`list()` method uses its method name as the default span name, while the [hotspot=addMethod file=0]`add()` and [hotspot=updateMethod file=0]`update()` methods define custom span names, [hotspot=addWithSpan file=0]`Inventory Manager Add` and [hotspot=updateWithSpan file=0]`Inventory Manager Update`, respectively. Each time one of these methods is invoked, the instrumentation automatically creates a new span.
+The [hotspot=listMethod file=0]`list()`, [hotspot=addMethod file=0]`add()`, and [hotspot=updateMethod file=0]`update()` methods are annotated with the [hotspot=listWithSpan hotspot=addWithSpan hotspot=updateWithSpan file=0]`@WithSpan` annotation. The [hotspot=listMethod file=0]`list()` method uses its method name as the default span name, while the [hotspot=addMethod file=0]`add()` and [hotspot=updateMethod file=0]`update()` methods define custom span names, [hotspot=addWithSpan file=0]`Inventory Manager Add` and [hotspot=updateWithSpan file=0]`Inventory Manager Update`, respectively. Each time one of these methods is invoked, the instrumentation automatically creates a new span.
 
 To enrich spans with additional context, you can annotate method parameters with the [hotspot=spanAttribute1 hotspot=spanAttribute2 file=0]`@SpanAttribute` annotation. In this example, the `host` parameter in the [hotspot=addMethod file=0]`add()` and [hotspot=updateMethod file=0]`update()` methods is labeled as [hotspot=spanAttribute1 hotspot=spanAttribute2 file=0]`hostname` in the span.
 
@@ -328,8 +347,6 @@ Open the http://localhost:9081/inventory/systems URL in your browser to trigger 
 image::inventory_manager_list_span.png[Spans generated when visiting `GET /inventory/systems`,align="center"]
 
 Verify that there are two spans from the `inventory` service. Expand each span to view its details. You'll see the `InventoryManager.list` span that is created by the [hotspot=listWithSpan file=0]`@WithSpan` annotation.
-
-{empty} +
 
 To check out the information generated by the `@SpanAttribute` annotation, visit the http://localhost:9081/inventory/systems/localhost URL, then re-run your Grafana query. Select a trace ID with the `GET /inventory/systems/{hostname}` name that you just generated. You will see the following result:
 
@@ -358,13 +375,13 @@ InventoryResource.java
 include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryResource.java[]
 ----
 
-Inject the OpenTelemetry [hotspot=tracer file=0]`Tracer` interface into the [hotspot file=0]`InventoryResource` class to manually instrument your code for trace collection. Before the [hotspot=manager hotspot=getHealth file=0]`InventoryManager` calls the `system` service to check its health status, it creates and starts a span named [hotspot=getPropertiesSpan file=0]`GettingProperties`.
+The OpenTelemetry [hotspot=tracer file=0]`Tracer` bean is injected into the [hotspot file=0]`InventoryResource` class to manually instrument your code for trace collection. Before the [hotspot=manager hotspot=getHealth file=0]`InventoryManager` calls the `system` service to check its health status, it creates and starts a span named [hotspot=getPropertiesSpan file=0]`GettingProperties`.
 
 Each span must be ended by calling [hotspot=end file=0]`end()`. To ensure the span always completes, the call is placed inside a [hotspot=finally file=0]`finally` block.
 
-Use the [hotspot=scope file=0]`makeCurrent()` method to set the span as the current span. This method returns a `Scope` that must be closed to restore the previous context. A [hotspot=try file=0]`try-with-resources` block is used so the scope closes automatically.
+Calling the [hotspot=scope file=0]`makeCurrent()` method sets the span as the current span. This method returns a `Scope` that must be closed to restore the previous context. A [hotspot=try file=0]`try-with-resources` block is used so the scope closes automatically.
 
-Use the [hotspot=addEvent1 hotspot=addEvent2 file=0]`addEvent()` Span API to add events to the span. In this example, the code adds one event when the properties are successfully received, and another when the request fails.
+Calling the [hotspot=addEvent1 hotspot=addEvent2 file=0]`addEvent()` method adds events to the span. In this example, the code adds one event when the properties are successfully received, and another when the request fails.
 
 For more information about OpenTelemetry distributed tracing, see the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/trace/package-summary.html[OpenTelemetry distributed tracing API documentation^].
 
@@ -402,11 +419,13 @@ HealthCheckScheduler.java
 include::finish/inventory/src/main/java/io/openliberty/guides/inventory/HealthCheckScheduler.java[]
 ----
 
-Inject the OpenTelemetry [hotspot=meter file=0]`Meter` interface into the [hotspot file=0]`HealthCheckScheduler` class to define and collect application-specific metrics. This interface provides access to the OpenTelemetry metrics API, including instruments such as counters, histograms, and gauges to monitor application behavior and performance.
+The OpenTelemetry [hotspot=meter file=0]`Meter` bean is injected into the [hotspot file=0]`HealthCheckScheduler` class to define and collect application-specific metrics. This interface provides access to the OpenTelemetry metrics API, including instruments such as counters, histograms, and gauges to monitor application behavior and performance.
 
-Use the [hotspot=counterBuilder file=0]`Meter.counterBuilder()` method to define a counter instrument named [hotspot=schedulerRunCounter file=0]`inventory.health.check.scheduler.runs`. This metric records the total number of health check scheduler executions over time.
+The [hotspot=counterBuilder file=0]`Meter.counterBuilder()` method defines a counter instrument named [hotspot=schedulerRunCounter file=0]`inventory.health.check.scheduler.runs`. This metric records the total number of health check scheduler executions over time.
 
-Use the [hotspot=histogramBuilder file=0]`Meter.histogramBuilder()` method to define a histogram instrument named [hotspot=schedulerDuration file=0]`inventory.health.check.scheduler.duration`. This metric measures the time taken for each scheduled health check run. The [hotspot=start file=0]`start` time is captured when the [hotspot=performHealthChecks file=0]`performHealthChecks()` method begins, and the [hotspot=duration file=0]`duration` is calculated and recorded when the run completes.
+The [hotspot=histogramBuilder file=0]`Meter.histogramBuilder()` method defines a histogram instrument named [hotspot=schedulerDuration file=0]`inventory.health.check.scheduler.duration`. This metric measures the time taken for each scheduled health check run. The [hotspot=start file=0]`start` time is captured when the [hotspot=performHealthChecks file=0]`performHealthChecks()` method begins, and the [hotspot=duration file=0]`duration` is calculated and recorded when the run completes.
+
+When naming metrics, follow OpenTelemetry's https://opentelemetry.io/docs/specs/semconv/general/metrics/[general naming guidelines] are followed to ensure compatibility across observability tools.
 
 [role="code_command hotspot file=1", subs="quotes"]
 ----
@@ -420,9 +439,7 @@ InventoryManager.java
 include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
 ----
 
-Inject the OpenTelemetry [hotspot=meter file=1]`Meter` interface and use the [hotspot=gaugeBuilder file=1]`Meter.gaugeBuilder()` method to define a gauge named [hotspot=inventorySize file=1]`inventory.size`. This metric reports the current number of systems in the inventory. The [hotspot=buildWithCallback file=1]`buildWithCallback()` method updates the gauge dynamically so that it always reflects the latest inventory size.
-
-When naming metrics, follow OpenTelemetry's https://opentelemetry.io/docs/specs/semconv/general/metrics/[general naming guidelines] to ensure compatibility. 
+The OpenTelemetry [hotspot=meter file=1]`Meter` bean is injected and used to define a gauge instrument by using the [hotspot=gaugeBuilder file=1]`Meter.gaugeBuilder()` method. The gauge is named [hotspot=inventorySize file=1]`inventory.size` and reports the current number of systems in the inventory. The [hotspot=buildWithCallback file=1]`buildWithCallback()` method updates the gauge dynamically so that it always reflects the latest inventory size.
 
 To learn more about how to define and use metrics in your application, refer to the https://opentelemetry.io/docs/languages/java/api/#meter[Meter operations^] for a full list of available metrics, or the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/metrics/package-summary.html[OpenTelemetry metrics API reference^].
 

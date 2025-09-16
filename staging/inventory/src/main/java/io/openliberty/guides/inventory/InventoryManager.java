@@ -57,10 +57,10 @@ public class InventoryManager {
         }
     }
 
+    // tag::listMethod[]
     // tag::listWithSpan[]
     @WithSpan
     // end::listWithSpan[]
-    // tag::listMethod[]
     public InventoryList list() {
         return new InventoryList(new ArrayList<>(systems.values()));
     }
