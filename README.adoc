@@ -250,7 +250,7 @@ inventory/bootstrap.properties
 include::finish/inventory/src/main/liberty/config/bootstrap.properties[]
 ----
 
-The `mpTelemetry` feature, which provides MicroProfile Telemetry support in Open Liberty, is already enabled for both the [hotspot=mpTelemetry file=0]`system` and [hotspot=mpTelemetry file=1]`inventory` services. OpenTelemetry is also enabled by setting the `otel.sdk.disabled` property to `false` for both the [hotspot=disabled file=2]`system` and [hotspot=disabled file=3]`inventory` services.
+The `mpTelemetry` feature, which enables MicroProfile Telemetry support in Open Liberty, is already enabled for both the [hotspot=mpTelemetry file=0]`system` and [hotspot=mpTelemetry file=1]`inventory` services. The OpenTelemetry SDK is also enabled by setting the `otel.sdk.disabled` property to `false` for both the [hotspot=disabled file=2]`system` and [hotspot=disabled file=3]`inventory` services, allowing telemetry data to be collected from each.
 
 Start the services to begin collecting telemetry data.
 
