@@ -27,8 +27,9 @@ import io.opentelemetry.api.metrics.Meter;
 @Startup
 public class HealthCheckScheduler {
 
-    private static final Logger logger = Logger.getLogger(HealthCheckScheduler.class.getName());
-    
+    private static final Logger LOGGER =
+        Logger.getLogger(HealthCheckScheduler.class.getName());
+
     @Inject
     private InventoryManager inventoryManager;
 
@@ -43,21 +44,23 @@ public class HealthCheckScheduler {
     @PostConstruct
     public void init() {
         // tag::counterBuilder[]
-        // tag::schedulerRunCounter[]
-        schedulerRunCounter = meter.counterBuilder("inventory.health.check.scheduler.runs")
-        // end::schedulerRunCounter[]
-                .setDescription("Total number of scheduler executions")
-                .setUnit("1")
-                .build();
+        schedulerRunCounter =
+            // tag::schedulerRunCounter[]
+            meter.counterBuilder("inventory.health.check.scheduler.runs")
+            // end::schedulerRunCounter[]
+                 .setDescription("Total number of scheduler executions")
+                 .setUnit("1")
+                 .build();
         // end::counterBuilder[]
 
         // tag::histogramBuilder[]
-        // tag::schedulerDuration[]
-        schedulerDuration = meter.histogramBuilder("inventory.health.check.scheduler.duration")
-        // end::schedulerDuration[]
-                .setDescription("Duration of scheduled health check runs")
-                .setUnit("s")
-                .build();
+        schedulerDuration =
+            // tag::schedulerDuration[]
+            meter.histogramBuilder("inventory.health.check.scheduler.duration")
+            // end::schedulerDuration[]
+                 .setDescription("Duration of scheduled health check runs")
+                 .setUnit("s")
+                 .build();
         // end::histogramBuilder[]
     }
 
@@ -79,7 +82,8 @@ public class HealthCheckScheduler {
         schedulerDuration.record(duration);
         schedulerRunCounter.add(1);
 
-        logger.info("Scheduled health check completed. Updated " + updated + " system(s).");
+        LOGGER.info(
+            "Scheduled health check completed. Updated " + updated + " system(s).");
     }
     // end::performHealthChecks[]
 }

@@ -22,7 +22,7 @@ import jakarta.inject.Inject;
 @Startup
 public class HealthCheckScheduler {
 
-    private static final Logger logger = Logger.getLogger(HealthCheckScheduler.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(HealthCheckScheduler.class.getName());
     
     @Inject
     private InventoryManager inventoryManager;
@@ -30,6 +30,6 @@ public class HealthCheckScheduler {
     @Schedule(hour = "*", minute = "*", second = "*/30", persistent = false)
     public void performHealthChecks() {
         int updated = inventoryManager.refreshAllSystemsHealth();
-        logger.info("Scheduled health check completed. Updated " + updated + " system(s).");
+        LOGGER.info("Scheduled health check completed. Updated " + updated + " system(s).");
     }
 }
