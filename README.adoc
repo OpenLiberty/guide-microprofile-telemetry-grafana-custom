@@ -451,7 +451,7 @@ To view the custom metrics, first trigger some activity in the application by vi
 
 * Visit the http://localhost:9080/system/unhealthy URL to set both `localhost` and host `127.0.0.1` health status to `DOWN`.
 
-Next, open the Grafana dashboard at the http://localhost:3000 URL. From the left menu, navigate to **Drilldown -> Metrics**, then and enter `inventory` in the **Quick search metrics** field to find metrics for the `inventory` service. In the top-right corner, click **Set auto refresh interval** and choose **30s** to see live updates.
+Next, open the Grafana dashboard at the http://localhost:3000 URL. From the left menu, navigate to **Drilldown -> Metrics**, then and enter `inventory` in the **Quick search metrics** field to find metrics for the `inventory` service. In the top-right corner, click **Set auto refresh interval** and choose **10s** to see live updates.
 
 OpenTelemetry metrics are sent every 60 seconds by default, so it may take up to a minute for new metrics to appear. If you don't see them right away, wait for the next update cycle.
 
@@ -461,7 +461,7 @@ image::inventory_custom_metrics.png[Inventory custom metrics,align="center"]
 
 Note the difference between the metric name you define and the name displayed in Grafana. For details on how OpenTelemetry metrics are transformed when exported to Prometheus, see the https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/#otlp-metric-points-to-prometheus[OTLP Metric points to Prometheus^] section of the OpenTelemetry specification.
 
-Since the health check scheduler runs every 30 seconds, you can wait a few minutes and refresh the dashboard to watch the metrics change in real time.
+Because the health check scheduler runs every [hotspot=scheduleAnnotation file=0]`30` seconds, you can wait a few minutes and refresh the dashboard to watch the metrics change in real time.
 
 // =================================================================================================
 // Testing the application 
@@ -472,11 +472,16 @@ Manually verify the telemetry signals by inspecting them in the Grafana dashboar
 
 === Running the tests
 
-Since you started Open Liberty in dev mode, run the tests for the `system` and `inventory` services by pressing the `enter/return` key in the command-line sessions where you started the services.
+Because you started Open Liberty in dev mode, run the tests for the `system` and `inventory` services by pressing the `enter/return` key in the command-line sessions where you started the services.
 
 When you are done checking out the services, exit dev mode by pressing `CTRL+C` in the shell sessions where you ran the `system` and `inventory` services.
 
-Finally, stop the container that you started from the `grafana/otel-lgtm` image in the **Additional prerequisites** section.
+Finally, run the following command to stop the container that you started from the `grafana/otel-lgtm` image in the **Additional prerequisites** section.
+
+[role="command"]
+----
+docker stop otel-lgtm
+----
 
 // =================================================================================================
 // Great work! You're done!
