@@ -73,7 +73,9 @@ public class SystemClient implements AutoCloseable {
     public Properties getProperties() {
         String url = buildUrl(SYSTEM_PROPERTIES);
         Builder builder = buildClientBuilder(url);
-        if (builder == null) return null;
+        if (builder == null) {
+            return null;
+        }
         try {
             Response response = builder.get();
             // tag::log3[]
@@ -105,7 +107,9 @@ public class SystemClient implements AutoCloseable {
     public String getHealth() {
         String url = buildUrl(SYSTEM_HEALTH);
         Builder builder = buildClientBuilder(url);
-        if (builder == null) return "ERROR";
+        if (builder == null) {
+            return "ERROR";
+        }
         try {
             Response response = builder.get();
             int statusCode = response.getStatus();

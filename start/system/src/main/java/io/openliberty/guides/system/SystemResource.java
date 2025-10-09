@@ -24,7 +24,8 @@ import jakarta.ws.rs.core.MediaType;
 @Path("properties")
 public class SystemResource {
 
-    private static final Logger LOGGER = Logger.getLogger(SystemResource.class.getName());
+    private static final Logger LOGGER =
+        Logger.getLogger(SystemResource.class.getName());
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
