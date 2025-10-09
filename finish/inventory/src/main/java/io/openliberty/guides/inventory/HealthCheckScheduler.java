@@ -44,7 +44,7 @@ public class HealthCheckScheduler {
     public void init() {
         // tag::counterBuilder[]
         // tag::schedulerRunCounter[]
-        schedulerRunCounter = meter.counterBuilder("inventory.health_check.scheduler.runs")
+        schedulerRunCounter = meter.counterBuilder("inventory.health.check.scheduler.runs")
         // end::schedulerRunCounter[]
                 .setDescription("Total number of scheduler executions")
                 .setUnit("1")
@@ -60,8 +60,10 @@ public class HealthCheckScheduler {
                 .build();
         // end::histogramBuilder[]
     }
-    
+
+    // tag::scheduleAnnotation[]
     @Schedule(hour = "*", minute = "*", second = "*/30", persistent = false)
+    // end::scheduleAnnotation[]
     // tag::performHealthChecks[]
     public void performHealthChecks() {
         // tag::start[]
