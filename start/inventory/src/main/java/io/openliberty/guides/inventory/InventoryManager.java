@@ -11,15 +11,19 @@
 // end::copyright[]
 package io.openliberty.guides.inventory;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.json.JsonObject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
 import io.openliberty.guides.inventory.client.SystemClient;
 import io.openliberty.guides.inventory.model.InventoryList;
@@ -28,63 +32,63 @@ import io.openliberty.guides.inventory.model.SystemData;
 @ApplicationScoped
 public class InventoryManager {
 
+    // tag::getLogger[]
+    private static final Logger LOGGER =
+        Logger.getLogger(InventoryManager.class.getName());
+    // end::getLogger[]
+
     @Inject
     @ConfigProperty(name = "system.http.port")
     private int SYSTEM_PORT;
 
     private Map<String, SystemData> systems = new ConcurrentHashMap<>();
 
-    public boolean contains(String host) {
-        return systems.containsKey(host);
-    }
-
-    public Properties getProperties(String hostname) {
-        try (SystemClient client = new SystemClient()) {
-            client.init(hostname, SYSTEM_PORT);
-            return client.getProperties();
-        }
-    }
-
-    public String getHealth(String hostname) {
-        try (SystemClient client = new SystemClient()) {
-            client.init(hostname, SYSTEM_PORT);
-            return client.getHealth();
-        }
+    public ArrayList<String> getHosts() {
+        return new ArrayList<>(systems.keySet());
     }
 
     public InventoryList list() {
         return new InventoryList(new ArrayList<>(systems.values()));
     }
 
-    public void add(String host, Properties systemProps, String health) {
-        Properties props = new Properties();
-        props.setProperty("os.name", systemProps.getProperty("os.name"));
-        props.setProperty("user.name", systemProps.getProperty("user.name"));
+    public JsonObject getSystemLoad(String host) {
+        String uriString = "http://" + host + ":" + SYSTEM_PORT + "/system";
+        try (SystemClient client = RestClientBuilder.newBuilder()
+                .baseUri(URI.create(uriString))
+                .build(SystemClient.class)) {
 
-        systems.put(host, new SystemData(host, props, health));
-    }
-
-    public void update(String host, String health) {
-        SystemData system = systems.get(host);
-        system.setHealth(health);
-    }
-
-    public int refreshAllSystemsHealth() {
-        int updated = 0;
-        for (SystemData system : systems.values()) {
-            String hostname = system.getHostname();
-            String newHealth = getHealth(hostname);
-            if (!newHealth.equals(system.getHealth())) {
-                system.setHealth(newHealth);
-                updated++;
-            }
+            JsonObject obj = client.getSystemLoad();
+            // tag::log1[]
+            LOGGER.log(Level.INFO,
+                "Retrieved system load from {0}", host);
+            // end::log1[]
+            return obj;
+        } catch (RuntimeException e) {
+            // tag::log2[]
+            LOGGER.log(Level.WARNING,
+                "Runtime exception while invoking system service", e);
+            // end::log2[]
+        } catch (Exception e) {
+            // tag::log3[]
+            LOGGER.log(Level.WARNING,
+                "Unexpected exception while processing system service request", e);
+            // end::log3[]
         }
-        return updated;
+        return null;
     }
 
-    int clear() {
-        int propertiesClearedCount = systems.size();
+    public void set(String host, JsonObject systemLoad) {
+        SystemData system = systems.get(host);
+        if (system != null) {
+            system.setSystemLoad(systemLoad);
+        } else {
+            systems.put(host, new SystemData(host, systemLoad));
+        }
+    }
+
+    public int clear() {
+        int systemsClearedCount = systems.size();
         systems.clear();
-        return propertiesClearedCount;
+        return systemsClearedCount;
     }
 }

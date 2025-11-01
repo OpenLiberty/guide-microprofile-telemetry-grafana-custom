@@ -11,13 +11,11 @@
 // end::copyright[]
 package io.openliberty.guides.inventory;
 
-import java.util.Properties;
-
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
+import jakarta.json.JsonObject;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -38,35 +36,16 @@ public class InventoryResource {
     @GET
     @Path("/{hostname}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getPropertiesForHost(@PathParam("hostname") String hostname) {
-        Properties props = null;
-        String health = manager.getHealth(hostname);
-        if (health.equals("ERROR")) {
+    public Response getSystemLoadForHost(@PathParam("hostname") String hostname) {
+        JsonObject systemLoad = manager.getSystemLoad(hostname);
+        if (systemLoad == null) {
             return Response.status(Response.Status.NOT_FOUND)
                         .entity("{ \"error\" : \"Unknown hostname or the system "
                         + "service may not be running on " + hostname + "\" }")
                         .build();
         }
-        props = manager.getProperties(hostname);
-        if (!manager.contains(hostname)) {
-            manager.add(hostname, props, health);
-        } else {
-            manager.update(hostname, health);
-        }
-        return Response.ok(props).build();
-    }
-
-    @POST
-    @Path("/health/refresh")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response refreshAllSystemsHealth() {
-        int updated = manager.refreshAllSystemsHealth();
-        if (updated == 0) {
-            return Response.ok("{\"ok\": \"No systems needed refresh\"}")
-                           .build();
-        }
-        return Response.ok("{\"ok\": \"Health refresh completed for all systems\", \"updated\": " + updated + "}")
-                       .build();
+        manager.set(hostname, systemLoad);
+        return Response.ok(systemLoad).build();
     }
 
     @GET
@@ -83,7 +62,8 @@ public class InventoryResource {
             return Response.ok("{\"ok\": \"No systems to clear\"}")
                            .build();
         }
-        return Response.ok("{\"ok\": \"Cleared all systems\", \"cleared\": " + cleared + "}")
+        return Response.ok("{\"ok\": \"Cleared all systems\", \"cleared\": "
+                           + cleared + "}")
                        .build();
     }
 }

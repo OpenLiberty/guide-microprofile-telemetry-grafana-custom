@@ -3,13 +3,10 @@
     <featureManager>
         <platform>jakartaee-10.0</platform>
         <!-- tag::microprofile[] -->
-        <platform>microprofile-7.0</platform>
+        <platform>microprofile-7.1</platform>
         <!-- end::microprofile[] -->
-        <feature>cdi</feature>
-        <feature>jsonb</feature>
         <feature>jsonp</feature>
         <feature>restfulWS</feature>
-        <feature>mpHealth</feature>
         <!-- tag::mpTelemetry[] -->
         <feature>mpTelemetry</feature>
         <!-- end::mpTelemetry[] -->

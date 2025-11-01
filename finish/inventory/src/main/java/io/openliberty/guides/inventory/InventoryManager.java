@@ -11,18 +11,25 @@
 // end::copyright[]
 package io.openliberty.guides.inventory;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.json.JsonObject;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
+import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.DoubleHistogram;
 import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 
@@ -33,16 +40,25 @@ import io.openliberty.guides.inventory.model.SystemData;
 @ApplicationScoped
 public class InventoryManager {
 
+    // tag::getLogger[]
+    private static final Logger LOGGER =
+        Logger.getLogger(InventoryManager.class.getName());
+    // end::getLogger[]
+
     @Inject
     @ConfigProperty(name = "system.http.port")
     private int SYSTEM_PORT;
 
-    private Map<String, SystemData> systems = new ConcurrentHashMap<>();
-
     // tag::meter[]
     @Inject
-    Meter meter;
+    private Meter meter;
     // end::meter[]
+    
+    private LongCounter systemLoadSuccessCounter;
+    private LongCounter systemLoadFailureCounter;
+    private DoubleHistogram systemLoadDuration;
+
+    private Map<String, SystemData> systems = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
@@ -56,80 +72,95 @@ public class InventoryManager {
             .buildWithCallback(g -> g.record((double) systems.size()));
             // end::buildWithCallback[]
         // end::gaugeBuilder[]
+            
+        // Initialize system load retrieval success counter
+        systemLoadSuccessCounter = meter.counterBuilder("inventory.system.load.retrieval.success")
+            .setDescription("Number of successful system load retrievals")
+            .setUnit("1")
+            .build();
+            
+        // Initialize system load retrieval failure counter
+        systemLoadFailureCounter = meter.counterBuilder("inventory.system.load.retrieval.failure")
+            .setDescription("Number of failed system load retrievals")
+            .setUnit("1")
+            .build();
+            
+        // Initialize system load retrieval duration histogram
+        systemLoadDuration = meter.histogramBuilder("inventory.system.load.retrieval.duration")
+            .setDescription("Duration of system load retrievals")
+            .setUnit("s")
+            .build();
     }
 
-    public boolean contains(String host) {
-        return systems.containsKey(host);
+    public ArrayList<String> getHosts() {
+        return new ArrayList<>(systems.keySet());
     }
 
-    public Properties getProperties(String hostname) {
-        try (SystemClient client = new SystemClient()) {
-            client.init(hostname, SYSTEM_PORT);
-            return client.getProperties();
-        }
-    }
-
-    public String getHealth(String hostname) {
-        try (SystemClient client = new SystemClient()) {
-            client.init(hostname, SYSTEM_PORT);
-            return client.getHealth();
-        }
-    }
-
-    // tag::listWithSpan[]
     @WithSpan
-    // end::listWithSpan[]
-    // tag::listMethod[]
     public InventoryList list() {
         return new InventoryList(new ArrayList<>(systems.values()));
     }
-    // end::listMethod[]
 
-    // tag::addWithSpan[]
-    @WithSpan("Inventory Manager Add")
-    // end::addWithSpan[]
-    // tag::addMethod[]
-    // tag::spanAttribute1[]
-    public void add(@SpanAttribute("hostname") String host,
-    // end::spanAttribute1[]
-                    Properties systemProps,
-                    String health) {
-        Properties props = new Properties();
-        props.setProperty("os.name", systemProps.getProperty("os.name"));
-        props.setProperty("user.name", systemProps.getProperty("user.name"));
+    @WithSpan("Inventory Manager GetSystemLoad")
+    public JsonObject getSystemLoad(@SpanAttribute("hostname") String host) {
+        String uriString = "http://" + host + ":" + SYSTEM_PORT + "/system";
+        long startTime = System.nanoTime();
+        
+        try (SystemClient client = RestClientBuilder.newBuilder()
+                .baseUri(URI.create(uriString))
+                .build(SystemClient.class)) {
 
-        systems.put(host, new SystemData(host, props, health));
-    }
-    // end::addMethod[]
+            JsonObject obj = client.getSystemLoad();
+            
+            // Record success metric
+            systemLoadSuccessCounter.add(1);
+            
+            // Record duration metric
+            double duration = (System.nanoTime() - startTime) / 1_000_000_000.0;
+            systemLoadDuration.record(duration);
 
-    // tag::updateWithSpan[]
-    @WithSpan("Inventory Manager Update")
-    // end::updateWithSpan[]
-    // tag::updateMethod[]
-    // tag::spanAttribute2[]
-    public void update(@SpanAttribute("hostname") String host, String health) {
-    // end::spanAttribute2[]
-        SystemData system = systems.get(host);
-        system.setHealth(health);
-    }
-    // end::updateMethod[]
-
-    public int refreshAllSystemsHealth() {
-        int updated = 0;
-        for (SystemData system : systems.values()) {
-            String hostname = system.getHostname();
-            String newHealth = getHealth(hostname);
-            if (!newHealth.equals(system.getHealth())) {
-                system.setHealth(newHealth);
-                updated++;
-            }
+            // tag::log1[]
+            LOGGER.log(Level.INFO,
+                "Retrieved system load from {0}", host);
+            // end::log1[]
+            Span.current().addEvent("Retrieved system load");
+            return obj;
+        } catch (RuntimeException e) {
+            // tag::log2[]
+            LOGGER.log(Level.WARNING,
+                "Runtime exception while invoking system service", e);
+            // end::log2[]
+        } catch (Exception e) {
+            // tag::log3[]
+            LOGGER.log(Level.WARNING,
+                "Unexpected exception while processing system service request", e);
+            // end::log3[]
         }
-        return updated;
+
+        // Record failure metric for any exception path
+        systemLoadFailureCounter.add(1);
+        Span.current().addEvent("Cannot get system load");
+        return null;
     }
 
-    int clear() {
-        int propertiesClearedCount = systems.size();
+    @WithSpan("Inventory Manager Set")
+    public void set(@SpanAttribute("hostname") String host,
+                    JsonObject systemLoad) {
+        SystemData system = systems.get(host);
+        if (system != null) {
+            Span.current().setAttribute("operation", "update");
+            Span.current().addEvent("Updating existing system data");
+            system.setSystemLoad(systemLoad);
+        } else {
+            Span.current().setAttribute("operation", "add");
+            Span.current().addEvent("Adding new system data");
+            systems.put(host, new SystemData(host, systemLoad));
+        }
+    }
+
+    public int clear() {
+        int systemsClearedCount = systems.size();
         systems.clear();
-        return propertiesClearedCount;
+        return systemsClearedCount;
     }
 }

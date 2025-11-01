@@ -11,41 +11,27 @@
 // end::copyright[]
 package io.openliberty.guides.inventory.model;
 
-import java.util.Properties;
+import jakarta.json.JsonObject;
 
 public class SystemData {
 
     private final String hostname;
-    private final Properties properties;
-    private String health;
+    private JsonObject systemLoad;
 
-    public SystemData(String hostname, Properties properties, String health) {
+    public SystemData(String hostname, JsonObject systemLoad) {
         this.hostname = hostname;
-        this.properties = properties;
-        this.health = health;
+        this.systemLoad = systemLoad;
     }
 
     public String getHostname() {
         return hostname;
     }
 
-    public Properties getProperties() {
-        return properties;
+    public JsonObject getSystemLoad() {
+        return systemLoad;
     }
 
-    public String getHealth() {
-        return health;
-    }
-
-    public void setHealth(String health) {
-        this.health = health;
-    }
-
-    @Override
-    public boolean equals(Object host) {
-        if (host instanceof SystemData) {
-            return hostname.equals(((SystemData) host).getHostname());
-        }
-        return false;
+    public void setSystemLoad(JsonObject systemLoad) {
+        this.systemLoad = systemLoad;
     }
 }

@@ -8,6 +8,7 @@
         <feature>jsonp</feature>
         <feature>restfulWS</feature>
         <feature>mpConfig</feature>
+        <feature>mpRestClient</feature>
         <feature>enterpriseBeansLite</feature>
         <feature>mpTelemetry</feature>
     </featureManager>
