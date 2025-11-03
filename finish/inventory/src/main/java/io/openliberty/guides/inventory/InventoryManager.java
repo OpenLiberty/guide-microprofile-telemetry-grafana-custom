@@ -74,7 +74,7 @@ public class InventoryManager {
     // tag::systemLoadDurationVar[]
     private DoubleHistogram systemLoadDuration;
     // end::systemLoadDurationVar[]
-    // end::metricsVars
+    // end::metricsVars[]
 
     // tag::postConstructMethod[]
     @PostConstruct
