@@ -367,7 +367,7 @@ Because these methods are annotated for tracing, each call creates a span. If at
 
 To make these refresh operations easier to identify, use the Tracer API to create a custom root span for the `refreshSystemLoads()` method. This ensures each execution starts a new trace and provides a clear parent span for all operations in that refresh cycle.
 
-[role="code_command hotspot file=1", subs="quotes"]
+[role="code_command hotspot file=2", subs="quotes"]
 ----
 #Replace the `SystemLoadRefreshScheduler` class:#
 `inventory/src/main/java/io/openliberty/guides/inventory/SystemLoadRefreshScheduler.java`
