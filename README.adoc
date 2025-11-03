@@ -12,14 +12,14 @@
 :page-releasedate: 2025-06-01
 :page-guide-category: microprofile
 :page-essential: false
-:page-description: Learn how to add manual instrumentation to collect custom spans in traces and custom metrics from microservices by using MicroProfile Telemetry and the Grafana stack.
+:page-description: Learn how to add manual instrumentation to collect custom tracing spans and custom metrics from microservices by using MicroProfile Telemetry and the Grafana stack.
 :guide-author: Open Liberty
 :page-tags: ['microprofile']
 :page-permalink: /guides/{projectid}
 :common-includes: https://raw.githubusercontent.com/OpenLiberty/guides-common/prod
 :page-related-guides: [ 'microprofile-telemetry-grafana-automatic', 'microprofile-telemetry-jaeger', 'microprofile-metrics', 'rest-intro', 'microprofile-rest-client' ]
 :imagesdir: /img/guide/{projectid}
-:page-seo-title: Adding custom tracing and metrics to Java microservices with MicroProfile Telemetry and Grafana
+:page-seo-title: Adding custom tracing and metrics to Java microservices with MicroProfile Telemetry and the Grafana stack
 :page-seo-description: A tutorial on how to manually instrument Java microservices with MicroProfile Telemetry in Open Liberty to collect custom spans in traces, custom metrics, and visualize them with the Grafana stack that is built on the grafana/otel-lgtm Docker image.
 :source-highlighter: prettify
 = Adding custom tracing and metrics for microservice observability using OpenTelemetry and Grafana
