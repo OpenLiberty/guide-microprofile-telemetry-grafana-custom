@@ -460,7 +460,7 @@ If you revisit the http://localhost:9081/inventory/systems/localhost URL, the `I
 
 {empty} +
 
-Next, visit the http://localhost:9081/inventory/systems/unknown URL to simulate a request for a nonexistent host. Rerun your Grafana query and open the latest trace for `GET /inventory/systems/{hostname}`. In the `Inventory Manager GetSystemLoad` span, you now see the [hotspot=addEvent2 file=0]`Cannot get system load` event. Since the request failed, the [hotspot=setMethod file=0]`set()` method is not called to add or update any system in the `inventory`.
+Next, visit the http://localhost:9081/inventory/systems/unknown URL to simulate a request for a nonexistent host. Rerun your Grafana query and open the latest trace for `GET /inventory/systems/{hostname}`. In the `Inventory Manager GetSystemLoad` span, you now see the [hotspot=addEvent2 file=0]`Cannot get system load` event. Because the request failed, the [hotspot=setMethod file=0]`set()` method is not called to add or update any system in the `inventory`.
 
 image::inventory_manager_getsystemload_failure.png[Inventory Manager GetSystemLoad span failure event,align="center"]
 
