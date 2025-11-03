@@ -92,29 +92,32 @@ public class InventoryManager {
 
         // tag::counterBuilder1[]
         // tag::systemLoadSuccessCount[]
-        systemLoadSuccessCounter = meter.counterBuilder("inventory.system.load.successes")
+        systemLoadSuccessCounter =
+            meter.counterBuilder("inventory.system.load.successes")
         // end::systemLoadSuccessCount[]
-            .setDescription("Number of successful system load retrievals")
-            .setUnit("1")
-            .build();
+                 .setDescription("Number of successful system load retrievals")
+                 .setUnit("1")
+                 .build();
         // end::counterBuilder1[]
 
         // tag::counterBuilder2[]
         // tag::systemLoadErrorCount[]
-        systemLoadErrorCounter = meter.counterBuilder("inventory.system.load.errors")
+        systemLoadErrorCounter =
+            meter.counterBuilder("inventory.system.load.errors")
         // end::systemLoadErrorCount[]
-            .setDescription("Number of failed system load retrievals")
-            .setUnit("1")
-            .build();
+                 .setDescription("Number of failed system load retrievals")
+                 .setUnit("1")
+                 .build();
         // end::counterBuilder2[]
 
         // tag::histogramBuilder[]
         // tag::systemLoadDuration[]
-        systemLoadDuration = meter.histogramBuilder("inventory.system.load.duration")
+        systemLoadDuration =
+            meter.histogramBuilder("inventory.system.load.duration")
         // end::systemLoadDuration[]
-            .setDescription("Duration of system load retrievals")
-            .setUnit("s")
-            .build();
+                 .setDescription("Duration of system load retrievals")
+                 .setUnit("s")
+                 .build();
         // end::histogramBuilder[]
     }
     // end::postConstructMethod[]
