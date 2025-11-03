@@ -11,20 +11,17 @@
 // end::copyright[]
 package io.openliberty.guides.inventory;
 
-import jakarta.annotation.PostConstruct;
+import java.util.List;
+
 import jakarta.ejb.Schedule;
 import jakarta.ejb.Singleton;
 import jakarta.ejb.Startup;
 import jakarta.inject.Inject;
 import jakarta.json.JsonObject;
 
-import io.opentelemetry.api.trace.Tracer;
-
-import java.util.List;
-
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
-import io.opentelemetry.context.Context;
 
 @Singleton
 @Startup
@@ -33,33 +30,55 @@ public class SystemLoadRefreshScheduler {
     @Inject
     private InventoryManager inventoryManager;
 
+    // tag::tracer[]
     @Inject
     private Tracer tracer;
+    // end::tracer[]
 
     @Schedule(hour = "*", minute = "*", second = "*/15", persistent = false)
+    // tag::refreshSystemLoads[]
     public void refreshSystemLoads() {
-        Span refreshSpan = tracer.spanBuilder("RefreshingSystemLoads").startSpan();
-        try (Scope scope = refreshSpan.makeCurrent()) {
+        // tag::span[]
+        Span span = tracer.spanBuilder("RefreshingSystemLoads").startSpan();
+        // end::span[]
+        // tag::try[]
+        // tag::scope[]
+        try (Scope scope = span.makeCurrent()) {
+        // end::scope[]
             List<String> hosts = inventoryManager.getHosts();
-            refreshSpan.setAttribute("systems.total", hosts.size());
+            // tag::setAttribute1[]
+            span.setAttribute("systems.total", hosts.size());
+            // end::setAttribute1[]
 
-            if (hosts.isEmpty()) {
-                refreshSpan.addEvent("No systems found to refresh");
-                refreshSpan.setAttribute("systems.refreshed", 0);
-            } else {
-                int refreshed = 0;
-                for (String host : hosts) {
-                    JsonObject systemLoad = inventoryManager.getSystemLoad(host);
-                    if (systemLoad != null) {
-                        inventoryManager.set(host, systemLoad);
-                        refreshed++;
-                    }
+            int refreshed = 0;
+            for (String host : hosts) {
+                JsonObject load = inventoryManager.getSystemLoad(host);
+                if (load != null) {
+                    inventoryManager.set(host, load);
+                    refreshed++;
                 }
-                refreshSpan.setAttribute("systems.refreshed", refreshed);
-                refreshSpan.addEvent("Refreshed system load for " + refreshed + " hosts");
             }
+
+            // tag::setAttribute2[]
+            span.setAttribute("systems.refreshed", refreshed);
+            // end::setAttribute2[]
+            if (hosts.isEmpty()) {
+                // tag::addEvent1[]
+                span.addEvent("No systems found to refresh");
+                // end::addEvent1[]
+            } else {
+                // tag::addEvent2[]
+                span.addEvent("Refreshed system load for " + refreshed + " hosts");
+                // end::addEvent2[]
+            }
+        // tag::finally[]
         } finally {
-            refreshSpan.end();
+            // tag::endSpan[]
+            span.end();
+            // end::endSpan[]
         }
+        // end::finally[]
+        // end::try[]
     }
+    // end::refreshSystemLoads[]
 }

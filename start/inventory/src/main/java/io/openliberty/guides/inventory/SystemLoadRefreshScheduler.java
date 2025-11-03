@@ -27,8 +27,10 @@ public class SystemLoadRefreshScheduler {
     @Schedule(hour = "*", minute = "*", second = "*/15", persistent = false)
     public void refreshSystemLoads() {
         for (String host : inventoryManager.getHosts()) {
-            JsonObject systemLoad = inventoryManager.getSystemLoad(host);
-            inventoryManager.set(host, systemLoad);
+            JsonObject load = inventoryManager.getSystemLoad(host);
+            if (load != null) {
+                inventoryManager.set(host, load);
+            }
         }
     }
 }
