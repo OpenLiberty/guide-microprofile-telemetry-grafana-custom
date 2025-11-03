@@ -466,112 +466,112 @@ image::inventory_manager_getsystemload_failure.png[Inventory Manager GetSystemLo
 
 For more information about OpenTelemetry distributed tracing, see the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/trace/package-summary.html[OpenTelemetry distributed tracing API documentation^].
 
-// // =================================================================================================
-// // Enabling explicit metrics
-// // =================================================================================================
-// == Enabling explicit metrics
+// =================================================================================================
+// Enabling explicit metrics
+// =================================================================================================
+== Enabling explicit metrics
 
-// When you enable the MicroProfile Telemetry feature, Open Liberty automatically collects and exports a default set of metrics. For the full list, see the https://openliberty.io/docs/latest/mptelemetry-metrics-list.html[MicroProfile Telemetry metrics reference list^]. In addition, you can create custom metrics in your application by using the OpenTelemetry Metrics API.
+When you enable the MicroProfile Telemetry feature, Open Liberty automatically collects and exports a default set of metrics. For the full list, see the https://openliberty.io/docs/latest/mptelemetry-metrics-list.html[MicroProfile Telemetry metrics reference list^]. In addition, you can create custom metrics in your application by using the OpenTelemetry Metrics API.
 
-// To define custom metrics, instrument your application code manually.
+To define custom metrics, instrument your application code manually.
 
-// [role="code_command hotspot file=0", subs="quotes"]
-// ----
-// #Replace the `InventoryManager` class.#
-// `inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java`
-// ----
+[role="code_command hotspot file=0", subs="quotes"]
+----
+#Replace the `InventoryManager` class.#
+`inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java`
+----
 
-// InventoryManager.java
-// [source, Java, linenums, role='code_column hide_tags=copyright']
-// ----
-// include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
-// ----
+InventoryManager.java
+[source, Java, linenums, role='code_column hide_tags=copyright']
+----
+include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
+----
 
-// The OpenTelemetry [hotspot=meter file=0]`Meter` bean is injected into the [hotspot file=0]`InventoryManager` class. This bean provides the Metrics API to create instruments such as gauges, counters, and histograms.
+The OpenTelemetry [hotspot=meter file=0]`Meter` bean is injected into the [hotspot file=0]`InventoryManager` class. This bean provides the Metrics API to create instruments such as gauges, counters, and histograms.
 
-// The [hotspot=gaugeBuilder file=0]`gaugeBuilder()` call defines a gauge named [hotspot=inventorySize file=0]`inventory.size` that reports the current number of systems in the inventory. The [hotspot=buildWithCallback file=1]`buildWithCallback()` call supplies a callback so the gauge always reflects the latest size.
+The [hotspot=gaugeBuilder file=0]`gaugeBuilder()` call defines a gauge named [hotspot=inventorySize file=0]`inventory.size` that reports the current number of systems in the inventory. The [hotspot=buildWithCallback file=0]`buildWithCallback()` call supplies a callback so the gauge always reflects the latest size.
 
-// The [hotspot=counterBuilder1 hotspot=counterBuilder2 hotspot=systemLoadSuccessCountVar hotspot=systemLoadErrorCountVar file=0]`counterBuilder()` calls define two counters, [hotspot=systemLoadSuccessCount file=0]`inventory.system.load.successes` and [hotspot=systemLoadErrorCount file=0]`inventory.system.load.errors`. In [hotspot=getSystemLoadMethod file=0]`getSystemLoad()`, [hotspot=systemLoadSuccessCounterAdd file=0]`systemLoadSuccessCounter` increments after a successful response, and [hotspot=systemLoadErrorCounterAdd file=0]`systemLoadErrorCounter` increments when the request fails. These counters track how many system load retrievals succeeded or failed.
+The [hotspot=counterBuilder1 hotspot=counterBuilder2 hotspot=systemLoadSuccessCountVar hotspot=systemLoadErrorCountVar file=0]`counterBuilder()` calls define two counters, [hotspot=systemLoadSuccessCount file=0]`inventory.system.load.successes` and [hotspot=systemLoadErrorCount file=0]`inventory.system.load.errors`. In [hotspot=getSystemLoadMethod file=0]`getSystemLoad()`, [hotspot=systemLoadSuccessCounterAdd file=0]`systemLoadSuccessCounter` increments after a successful response, and [hotspot=systemLoadErrorCounterAdd file=0]`systemLoadErrorCounter` increments when the request fails. These counters track how many system load retrievals succeeded or failed.
 
-// The [hotspot=histogramBuilder hotspot=systemLoadDurationVar file=0]`histogramBuilder()` call defines a histogram named [hotspot=systemLoadDuration file=0]`inventory.system.load.duration` that measures retrieval latency in seconds. A [hotspot=start file=0]`startTime` is captured before calling the `system` service, and the [hotspot=duration file=0]`duration` is recorded in the histogram after the response is received.
+The [hotspot=histogramBuilder hotspot=systemLoadDurationVar file=0]`histogramBuilder()` call defines a histogram named [hotspot=systemLoadDuration file=0]`inventory.system.load.duration` that measures retrieval latency in seconds. A [hotspot=start file=0]`startTime` is captured before calling the `system` service, and the [hotspot=duration file=0]`duration` is recorded in the histogram after the response is received.
 
-// When naming metrics, OpenTelemetry's https://opentelemetry.io/docs/specs/semconv/general/metrics/[general naming guidelines] are followed to support compatibility across observability tools.
+When naming metrics, OpenTelemetry's https://opentelemetry.io/docs/specs/semconv/general/metrics/[general naming guidelines] are followed to support compatibility across observability tools.
 
-// For more information about OpenTelemetry metrics, see the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/metrics/package-summary.html[OpenTelemetry metrics API documentation^].
+For more information about OpenTelemetry metrics, see the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/metrics/package-summary.html[OpenTelemetry metrics API documentation^].
 
-// You can now view the custom metrics.
+You can now view the custom metrics.
 
-// Visit the http://localhost:9081/inventory/systems/localhost URL to add your local system to the `inventory`. Then, open Grafana at the http://localhost:3000 URL and go to **Drilldown → Metrics** from the left menu. In the metrics view, use the **A_** prefix filters control on the left menu to select `inventory`. At the upper right, set the time range to **Last 5 minutes** and set **Auto refresh interval** to **10s** to watch updates.
+Visit the http://localhost:9081/inventory/systems/localhost URL to add your local system to the `inventory`. Then, open Grafana at the http://localhost:3000 URL and go to **Drilldown → Metrics** from the left menu. In the metrics view, use the **A_** prefix filters control on the left menu to select `inventory`. At the upper right, set the time range to **Last 5 minutes** and set **Auto refresh interval** to **10s** to watch updates.
 
-// OpenTelemetry metrics are exported to the collector every 60 seconds by default, so it may take up to a minute for new metrics to appear. If you don't see them right away, wait for the next update cycle.
+OpenTelemetry metrics are exported to the collector every 60 seconds by default, so it may take up to a minute for new metrics to appear. If you don't see them right away, wait for the next update cycle.
 
-// You see a result similar to the following:
+You see a result similar to the following:
 
-// image::inventory_custom_metrics.png[Inventory custom metrics,align="center"]
+image::inventory_custom_metrics.png[Inventory custom metrics,align="center"]
 
-// Note the difference between the metric names that are defined in code and the names that appear in Grafana. For details on how OpenTelemetry metrics are transformed when exported to Prometheus, see the https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/#otlp-metric-points-to-prometheus[OTLP metric points to Prometheus^] section of the specification.
+Note the difference between the metric names that are defined in code and the names that appear in Grafana. For details on how OpenTelemetry metrics are transformed when exported to Prometheus, see the https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/#otlp-metric-points-to-prometheus[OTLP metric points to Prometheus^] section of the specification.
 
-// To generate more data for the custom metrics, you can add another host by visiting the http://localhost:9081/inventory/systems/127.0.0.1 URL. To simulate a nonexistent host, visit the http://localhost:9081/inventory/systems/unknown URL or any host that is not running on your machine, which increments the error counter. You can also stop and restart the `system` service to simulate an unreachable system in the `inventory`.
+To generate more data for the custom metrics, you can add another host by visiting the http://localhost:9081/inventory/systems/127.0.0.1 URL. To simulate a nonexistent host, visit the http://localhost:9081/inventory/systems/unknown URL or any host that is not running on your machine, which increments the error counter. You can also stop and restart the `system` service to simulate an unreachable system in the `inventory`.
 
-// Because the refresh scheduler runs every 15 seconds, wait a few minutes and refresh the dashboard to observe the metrics change in real time.
+Because the refresh scheduler runs every 15 seconds, wait a few minutes and refresh the dashboard to observe the metrics change in real time.
 
-// // =================================================================================================
-// // Testing the application
-// // =================================================================================================
-// == Testing the application
+// =================================================================================================
+// Testing the application
+// =================================================================================================
+== Testing the application
 
-// Manually verify the telemetry signals by inspecting them in the Grafana dashboard. You can also run the included tests to check the basic functionality of the services. If any of the tests fail, you might have introduced a bug into the code.
+Manually verify the telemetry signals by inspecting them in the Grafana dashboard. You can also run the included tests to check the basic functionality of the services. If any of the tests fail, you might have introduced a bug into the code.
 
-// === Running the tests
+=== Running the tests
 
-// Because you started Open Liberty in dev mode, you can run the tests for the `system` and `inventory` services by pressing the `enter/return` key from the command-line sessions where you started the services.
+Because you started Open Liberty in dev mode, you can run the tests for the `system` and `inventory` services by pressing the `enter/return` key from the command-line sessions where you started the services.
 
-// If the tests pass, you see an output for each service similar to the following:
+If the tests pass, you see an output for each service similar to the following:
 
-// [role="no_copy"]
-// ----
-// -------------------------------------------------------
-//  T E S T S
-// -------------------------------------------------------
-// Running it.io.openliberty.guides.system.SystemEndpointIT
-// Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.445 s -- in it.io.openliberty.guides.system.SystemEndpointIT
+[role="no_copy"]
+----
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running it.io.openliberty.guides.system.SystemEndpointIT
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.445 s -- in it.io.openliberty.guides.system.SystemEndpointIT
 
-// Results:
+Results:
 
-// Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
-// ----
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+----
 
-// [role="no_copy"]
-// ----
-// -------------------------------------------------------
-//  T E S T S
-// -------------------------------------------------------
-// Running it.io.openliberty.guides.inventory.InventoryEndpointIT
-// ...
-// Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.855 s -- in it.io.openliberty.guides.inventory.InventoryEndpointIT
+[role="no_copy"]
+----
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running it.io.openliberty.guides.inventory.InventoryEndpointIT
+...
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.855 s -- in it.io.openliberty.guides.inventory.InventoryEndpointIT
 
-// Results:
+Results:
 
-// Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
-// ----
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
+----
 
-// When you are done checking out the services, exit dev mode by pressing `CTRL+C` in the shell sessions where you ran the `system` and `inventory` services.
+When you are done checking out the services, exit dev mode by pressing `CTRL+C` in the shell sessions where you ran the `system` and `inventory` services.
 
-// Finally, run the following command to stop the container that you started from the `grafana/otel-lgtm` image in the **Additional prerequisites** section.
+Finally, run the following command to stop the container that you started from the `grafana/otel-lgtm` image in the **Additional prerequisites** section.
 
-// [role="command"]
-// ----
-// docker stop otel-lgtm
-// ----
+[role="command"]
+----
+docker stop otel-lgtm
+----
 
-// // =================================================================================================
-// // Great work! You're done!
-// // =================================================================================================
+// =================================================================================================
+// Great work! You're done!
+// =================================================================================================
 
-// == Great work! You're done!
+== Great work! You're done!
 
-// You just used MicroProfile Telemetry in Open Liberty to go beyond automatic instrumentation by adding custom spans in traces and custom metrics to your microservices.
+You just used MicroProfile Telemetry in Open Liberty to extend automatic instrumentation with custom tracing spans and custom metrics, and you visualized the telemetry in Grafana.
 
-// Try out one of the related MicroProfile guides. These guides demonstrate more technologies that you can learn to expand on what you built in this guide.
+Try out one of the related MicroProfile guides. These guides demonstrate more technologies that you can learn to expand on what you built in this guide.
 
-// include::{common-includes}/attribution.adoc[subs="attributes"]
+include::{common-includes}/attribution.adoc[subs="attributes"]
