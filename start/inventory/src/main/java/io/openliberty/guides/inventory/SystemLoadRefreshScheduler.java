@@ -25,6 +25,7 @@ public class SystemLoadRefreshScheduler {
     private InventoryManager inventoryManager;
 
     @Schedule(hour = "*", minute = "*", second = "*/15", persistent = false)
+    // tag::refreshSystemLoads[]
     public void refreshSystemLoads() {
         for (String host : inventoryManager.getHosts()) {
             JsonObject load = inventoryManager.getSystemLoad(host);
@@ -33,4 +34,5 @@ public class SystemLoadRefreshScheduler {
             }
         }
     }
+    // end::refreshSystemLoads[]
 }
