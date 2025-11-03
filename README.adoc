@@ -398,73 +398,73 @@ image::inventory_refreshing_system_loads_span.png[RefreshingSystemLoads span,ali
 
 To simulate a case where the `localhost` system in the `inventory` is unavailable, stop the Liberty instance for the `system` microservice by pressing `CTRL+C` in its dev mode console. Wait for 15 seconds and rerun the Grafana query. Select the latest trace named `RefreshingSystemLoads`. This time, you see two spans. Expand the `RefreshingSystemLoads` span and check the **Span attributes** and **Events** fields. The `systems.total` attribute has a value of `1`, but `systems.refreshed` shows `0`, and the **Events** field shows `Refreshed system load for 0 hosts`.
 
-// === Enriching existing spans
+=== Enriching existing spans
 
-// You can add more context to an existing span to make your traces easier to interpret.
+You can add more context to an existing span to make your traces easier to interpret.
 
-// When viewing the `RefreshingSystemLoads` trace where the `localhost` system is down, you see only two spans in the trace. In contrast, when the system is running, the trace includes five spans. These include spans from both the `inventory` and `system` services for retrieving system load data, and an `Inventory Manager Set` span for updating the inventory.
+When viewing the `RefreshingSystemLoads` trace where the `localhost` system is down, you see only two spans in the trace. In contrast, when the system is running, the trace includes five spans. These include spans from both the `inventory` and `system` services for retrieving system load data, and an `Inventory Manager Set` span for updating the inventory.
 
-// Rerun the Grafana query in the same view, then select a trace named `RefreshingSystemLoads`. Expand the `Inventory Manager GetSystemLoad` span. You can see that the trace does not indicate whether the request to the `system` service succeeded or failed.
+Rerun the Grafana query in the same view, then select a trace named `RefreshingSystemLoads`. Expand the `Inventory Manager GetSystemLoad` span. You can see that the trace does not indicate whether the request to the `system` service succeeded or failed.
 
-// You can add additional context to a span by using the `Span.current()` method to retrieve the active span and record events or attributes.
+You can add additional context to a span by using the `Span.current()` method to retrieve the active span and record events or attributes.
 
-// [role="code_command hotspot file=0", subs="quotes"]
-// ----
-// #Replace the `InventoryManager` class.#
-// `inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java`
-// ----
+[role="code_command hotspot file=0", subs="quotes"]
+----
+#Replace the `InventoryManager` class.#
+`inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java`
+----
 
-// InventoryManager.java
-// [source, java, linenums, role='code_column hide_tags=copyright,postConstruct,metricsImports,meter,metricsVars,postConstructMethod,start,duration,systemLoadSuccessCounterAdd,systemLoadErrorCounterAdd']
-// ----
-// include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
-// ----
+InventoryManager.java
+[source, java, linenums, role='code_column hide_tags=copyright,postConstruct,metricsImports,meter,metricsVars,postConstructMethod,start,duration,systemLoadSuccessCounterAdd,systemLoadErrorCounterAdd']
+----
+include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
+----
 
-// The [hotspot=spanCurrent1 hotspot=spanCurrent2 file=0]`Span.current()` method is used to retrieve the current active span so that additional data can be added to it. The [hotspot=addEvent1 hotspot=addEvent2 file=0]`addEvent()` method adds events to the `Inventory Manager GetSystemLoad` span when system load data is received or when it fails to get the system load from the [hotspot=getSystemLoadFromSystem file=0]`system` service. The [hotspot=setAttribute1 hotspot=setAttribute2 file=0]`setAttribute()` method adds attributes to the `Inventory Manager Set` span to record when a system is first added to the inventory or when its information is updated.
+The [hotspot=spanCurrent1 hotspot=spanCurrent2 file=0]`Span.current()` method is used to retrieve the current active span so that additional data can be added to it. The [hotspot=addEvent1 hotspot=addEvent2 file=0]`addEvent()` method adds events to the `Inventory Manager GetSystemLoad` span when system load data is received or when it fails to get the system load from the [hotspot=getSystemLoadFromSystem file=0]`system` service. The [hotspot=setAttribute1 hotspot=setAttribute2 file=0]`setAttribute()` method adds attributes to the `Inventory Manager Set` span to record when a system is first added to the inventory or when its information is updated.
 
-// You can now view the new traces with the added span details. Restart the dev mode for the `system` microservice:
+You can now view the new traces with the added span details. Restart the dev mode for the `system` microservice:
 
-// include::{common-includes}/os-tabs.adoc[]
+include::{common-includes}/os-tabs.adoc[]
 
-// [.tab_content.windows_section]
-// --
-// [role='command']
-// ```
-// mvnw.cmd -pl system liberty:dev
-// ```
-// --
+[.tab_content.windows_section]
+--
+[role='command']
+```
+mvnw.cmd -pl system liberty:dev
+```
+--
 
-// [.tab_content.mac_section]
-// --
-// [role='command']
-// ```
-// ./mvnw -pl system liberty:dev
-// ```
-// --
+[.tab_content.mac_section]
+--
+[role='command']
+```
+./mvnw -pl system liberty:dev
+```
+--
 
-// [.tab_content.linux_section]
-// --
-// [role='command']
-// ```
-// ./mvnw -pl system liberty:dev
-// ```
-// --
+[.tab_content.linux_section]
+--
+[role='command']
+```
+./mvnw -pl system liberty:dev
+```
+--
 
-// When the `system` service is running again, visit the http://localhost:9081/inventory/systems/localhost URL to retrieve and store the system load information for `localhost` in the `inventory`. Then, open the Grafana dashboard at the http://localhost:3000 URL. In the **Explore** view, select **Tempo** as the data source, set **Query type** to `Search`, and click the blue **Run query** button. Find and open the trace for `GET /inventory/systems/{hostname}`. You see the following result:
+When the `system` service is running again, visit the http://localhost:9081/inventory/systems/localhost URL to retrieve and store the system load information for `localhost` in the `inventory`. Then, open the Grafana dashboard at the http://localhost:3000 URL. In the **Explore** view, select **Tempo** as the data source, set **Query type** to `Search`, and click the blue **Run query** button. Find and open the trace for `GET /inventory/systems/{hostname}`. You see the following result:
 
-// image::inventory_service_5_spans_detailed.png[Spans details from `GET /inventory/systems/{hostname}`,align="center"]
+image::inventory_service_5_spans_detailed.png[Spans details from `GET /inventory/systems/{hostname}`,align="center"]
 
-// Expand the `Inventory Manager GetSystemLoad` span to see the [hotspot=addEvent1 file=0]`Retrieved system load` event. Expand the `Inventory Manager Set` span to see the `operation` attribute set to [hotspot=setAttribute2 file=0]`add`.
+Expand the `Inventory Manager GetSystemLoad` span to see the [hotspot=addEvent1 file=0]`Retrieved system load` event. Expand the `Inventory Manager Set` span to see the `operation` attribute set to [hotspot=setAttribute2 file=0]`add`.
 
-// If you revisit the http://localhost:9081/inventory/systems/localhost URL, the `Inventory Manager Set` span from the `GET /inventory/systems/{hostname}` trace now shows the `operation` attribute as [hotspot=setAttribute1 file=0]`update`.
+If you revisit the http://localhost:9081/inventory/systems/localhost URL, the `Inventory Manager Set` span from the `GET /inventory/systems/{hostname}` trace now shows the `operation` attribute as [hotspot=setAttribute1 file=0]`update`.
 
-// {empty} +
+{empty} +
 
-// Next, visit the http://localhost:9081/inventory/systems/unknown URL to simulate a request for a nonexistent host. Rerun your Grafana query and open the latest trace for `GET /inventory/systems/{hostname}`. In the `Inventory Manager GetSystemLoad` span, you now see the [hotspot=addEvent2 file=0]`Cannot get system load` event. Because the request failed, the [hotspot=setMethod file=0]`set()` method is not called to add or update any system in the `inventory`.
+Next, visit the http://localhost:9081/inventory/systems/unknown URL to simulate a request for a nonexistent host. Rerun your Grafana query and open the latest trace for `GET /inventory/systems/{hostname}`. In the `Inventory Manager GetSystemLoad` span, you now see the [hotspot=addEvent2 file=0]`Cannot get system load` event. Because the request failed, the [hotspot=setMethod file=0]`set()` method is not called to add or update any system in the `inventory`.
 
-// image::inventory_manager_getsystemload_failure.png[Inventory Manager GetSystemLoad span failure event,align="center"]
+image::inventory_manager_getsystemload_failure.png[Inventory Manager GetSystemLoad span failure event,align="center"]
 
-// For more information about OpenTelemetry distributed tracing, see the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/trace/package-summary.html[OpenTelemetry distributed tracing API documentation^].
+For more information about OpenTelemetry distributed tracing, see the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/trace/package-summary.html[OpenTelemetry distributed tracing API documentation^].
 
 // // =================================================================================================
 // // Enabling explicit metrics
