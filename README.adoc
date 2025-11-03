@@ -398,180 +398,180 @@ image::inventory_refreshing_system_loads_span.png[RefreshingSystemLoads span,ali
 
 To simulate a case where the `localhost` system in the `inventory` is unavailable, stop the Liberty instance for the `system` microservice by pressing `CTRL+C` in its dev mode console. Wait for 15 seconds and rerun the Grafana query. Select the latest trace named `RefreshingSystemLoads`. This time, you see two spans. Expand the `RefreshingSystemLoads` span and check the **Span attributes** and **Events** fields. The `systems.total` attribute has a value of `1`, but `systems.refreshed` shows `0`, and the **Events** field shows `Refreshed system load for 0 hosts`.
 
-=== Enriching existing spans
+// === Enriching existing spans
 
-You can add more context to an existing span to make your traces easier to interpret.
+// You can add more context to an existing span to make your traces easier to interpret.
 
-When viewing the `RefreshingSystemLoads` trace where the `localhost` system is down, you see only two spans in the trace. In contrast, when the system is running, the trace includes five spans. These include spans from both the `inventory` and `system` services for retrieving system load data, and an `Inventory Manager Set` span for updating the inventory.
+// When viewing the `RefreshingSystemLoads` trace where the `localhost` system is down, you see only two spans in the trace. In contrast, when the system is running, the trace includes five spans. These include spans from both the `inventory` and `system` services for retrieving system load data, and an `Inventory Manager Set` span for updating the inventory.
 
-Rerun the Grafana query in the same view, then select a trace named `RefreshingSystemLoads`. Expand the `Inventory Manager GetSystemLoad` span. You can see that the trace does not indicate whether the request to the `system` service succeeded or failed.
+// Rerun the Grafana query in the same view, then select a trace named `RefreshingSystemLoads`. Expand the `Inventory Manager GetSystemLoad` span. You can see that the trace does not indicate whether the request to the `system` service succeeded or failed.
 
-You can add additional context to a span by using the `Span.current()` method to retrieve the active span and record events or attributes.
+// You can add additional context to a span by using the `Span.current()` method to retrieve the active span and record events or attributes.
 
-[role="code_command hotspot file=0", subs="quotes"]
-----
-#Replace the `InventoryManager` class.#
-`inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java`
-----
+// [role="code_command hotspot file=0", subs="quotes"]
+// ----
+// #Replace the `InventoryManager` class.#
+// `inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java`
+// ----
 
-InventoryManager.java
-[source, java, linenums, role='code_column hide_tags=copyright,postConstruct,metricsImports,meter,metricsVars,postConstructMethod,start,duration,systemLoadSuccessCounterAdd,systemLoadErrorCounterAdd']
-----
-include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
-----
+// InventoryManager.java
+// [source, java, linenums, role='code_column hide_tags=copyright,postConstruct,metricsImports,meter,metricsVars,postConstructMethod,start,duration,systemLoadSuccessCounterAdd,systemLoadErrorCounterAdd']
+// ----
+// include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
+// ----
 
-The [hotspot=spanCurrent1 hotspot=spanCurrent2 file=0]`Span.current()` method is used to retrieve the current active span so that additional data can be added to it. The [hotspot=addEvent1 hotspot=addEvent2 file=0]`addEvent()` method adds events to the `Inventory Manager GetSystemLoad` span when system load data is received or when it fails to get the system load from the [hotspot=getSystemLoadFromSystem file=0]`system` service. The [hotspot=setAttribute1 hotspot=setAttribute2 file=0]`setAttribute()` method adds attributes to the `Inventory Manager Set` span to record when a system is first added to the inventory or when its information is updated.
+// The [hotspot=spanCurrent1 hotspot=spanCurrent2 file=0]`Span.current()` method is used to retrieve the current active span so that additional data can be added to it. The [hotspot=addEvent1 hotspot=addEvent2 file=0]`addEvent()` method adds events to the `Inventory Manager GetSystemLoad` span when system load data is received or when it fails to get the system load from the [hotspot=getSystemLoadFromSystem file=0]`system` service. The [hotspot=setAttribute1 hotspot=setAttribute2 file=0]`setAttribute()` method adds attributes to the `Inventory Manager Set` span to record when a system is first added to the inventory or when its information is updated.
 
-You can now view the new traces with the added span details. Restart the dev mode for the `system` microservice:
+// You can now view the new traces with the added span details. Restart the dev mode for the `system` microservice:
 
-include::{common-includes}/os-tabs.adoc[]
+// include::{common-includes}/os-tabs.adoc[]
 
-[.tab_content.windows_section]
---
-[role='command']
-```
-mvnw.cmd -pl system liberty:dev
-```
---
+// [.tab_content.windows_section]
+// --
+// [role='command']
+// ```
+// mvnw.cmd -pl system liberty:dev
+// ```
+// --
 
-[.tab_content.mac_section]
---
-[role='command']
-```
-./mvnw -pl system liberty:dev
-```
---
+// [.tab_content.mac_section]
+// --
+// [role='command']
+// ```
+// ./mvnw -pl system liberty:dev
+// ```
+// --
 
-[.tab_content.linux_section]
---
-[role='command']
-```
-./mvnw -pl system liberty:dev
-```
---
+// [.tab_content.linux_section]
+// --
+// [role='command']
+// ```
+// ./mvnw -pl system liberty:dev
+// ```
+// --
 
-When the `system` service is running again, visit the http://localhost:9081/inventory/systems/localhost URL to retrieve and store the system load information for `localhost` in the `inventory`. Then, open the Grafana dashboard at the http://localhost:3000 URL. In the **Explore** view, select **Tempo** as the data source, set **Query type** to `Search`, and click the blue **Run query** button. Find and open the trace for `GET /inventory/systems/{hostname}`. You see the following result:
+// When the `system` service is running again, visit the http://localhost:9081/inventory/systems/localhost URL to retrieve and store the system load information for `localhost` in the `inventory`. Then, open the Grafana dashboard at the http://localhost:3000 URL. In the **Explore** view, select **Tempo** as the data source, set **Query type** to `Search`, and click the blue **Run query** button. Find and open the trace for `GET /inventory/systems/{hostname}`. You see the following result:
 
-image::inventory_service_5_spans_detailed.png[Spans details from `GET /inventory/systems/{hostname}`,align="center"]
+// image::inventory_service_5_spans_detailed.png[Spans details from `GET /inventory/systems/{hostname}`,align="center"]
 
-Expand the `Inventory Manager GetSystemLoad` span to see the [hotspot=addEvent1 file=0]`Retrieved system load` event. Expand the `Inventory Manager Set` span to see the `operation` attribute set to [hotspot=setAttribute2 file=0]`add`.
+// Expand the `Inventory Manager GetSystemLoad` span to see the [hotspot=addEvent1 file=0]`Retrieved system load` event. Expand the `Inventory Manager Set` span to see the `operation` attribute set to [hotspot=setAttribute2 file=0]`add`.
 
-If you revisit the http://localhost:9081/inventory/systems/localhost URL, the `Inventory Manager Set` span from the `GET /inventory/systems/{hostname}` trace now shows the `operation` attribute as [hotspot=setAttribute1 file=0]`update`.
+// If you revisit the http://localhost:9081/inventory/systems/localhost URL, the `Inventory Manager Set` span from the `GET /inventory/systems/{hostname}` trace now shows the `operation` attribute as [hotspot=setAttribute1 file=0]`update`.
 
-{empty} +
+// {empty} +
 
-Next, visit the http://localhost:9081/inventory/systems/unknown URL to simulate a request for a nonexistent host. Rerun your Grafana query and open the latest trace for `GET /inventory/systems/{hostname}`. In the `Inventory Manager GetSystemLoad` span, you now see the [hotspot=addEvent2 file=0]`Cannot get system load` event. Because the request failed, the [hotspot=setMethod file=0]`set()` method is not called to add or update any system in the `inventory`.
+// Next, visit the http://localhost:9081/inventory/systems/unknown URL to simulate a request for a nonexistent host. Rerun your Grafana query and open the latest trace for `GET /inventory/systems/{hostname}`. In the `Inventory Manager GetSystemLoad` span, you now see the [hotspot=addEvent2 file=0]`Cannot get system load` event. Because the request failed, the [hotspot=setMethod file=0]`set()` method is not called to add or update any system in the `inventory`.
 
-image::inventory_manager_getsystemload_failure.png[Inventory Manager GetSystemLoad span failure event,align="center"]
+// image::inventory_manager_getsystemload_failure.png[Inventory Manager GetSystemLoad span failure event,align="center"]
 
-For more information about OpenTelemetry distributed tracing, see the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/trace/package-summary.html[OpenTelemetry distributed tracing API documentation^].
+// For more information about OpenTelemetry distributed tracing, see the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/trace/package-summary.html[OpenTelemetry distributed tracing API documentation^].
 
-// =================================================================================================
-// Enabling explicit metrics
-// =================================================================================================
-== Enabling explicit metrics
+// // =================================================================================================
+// // Enabling explicit metrics
+// // =================================================================================================
+// == Enabling explicit metrics
 
-When you enable the MicroProfile Telemetry feature, Open Liberty automatically collects and exports a default set of metrics. For the full list, see the https://openliberty.io/docs/latest/mptelemetry-metrics-list.html[MicroProfile Telemetry metrics reference list^]. In addition, you can create custom metrics in your application by using the OpenTelemetry Metrics API.
+// When you enable the MicroProfile Telemetry feature, Open Liberty automatically collects and exports a default set of metrics. For the full list, see the https://openliberty.io/docs/latest/mptelemetry-metrics-list.html[MicroProfile Telemetry metrics reference list^]. In addition, you can create custom metrics in your application by using the OpenTelemetry Metrics API.
 
-To define custom metrics, instrument your application code manually.
+// To define custom metrics, instrument your application code manually.
 
-[role="code_command hotspot file=0", subs="quotes"]
-----
-#Replace the `InventoryManager` class.#
-`inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java`
-----
+// [role="code_command hotspot file=0", subs="quotes"]
+// ----
+// #Replace the `InventoryManager` class.#
+// `inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java`
+// ----
 
-InventoryManager.java
-[source, Java, linenums, role='code_column hide_tags=copyright']
-----
-include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
-----
+// InventoryManager.java
+// [source, Java, linenums, role='code_column hide_tags=copyright']
+// ----
+// include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
+// ----
 
-The OpenTelemetry [hotspot=meter file=0]`Meter` bean is injected into the [hotspot file=0]`InventoryManager` class. This bean provides the Metrics API to create instruments such as gauges, counters, and histograms.
+// The OpenTelemetry [hotspot=meter file=0]`Meter` bean is injected into the [hotspot file=0]`InventoryManager` class. This bean provides the Metrics API to create instruments such as gauges, counters, and histograms.
 
-The [hotspot=gaugeBuilder file=0]`gaugeBuilder()` call defines a gauge named [hotspot=inventorySize file=0]`inventory.size` that reports the current number of systems in the inventory. The [hotspot=buildWithCallback file=1]`buildWithCallback()` call supplies a callback so the gauge always reflects the latest size.
+// The [hotspot=gaugeBuilder file=0]`gaugeBuilder()` call defines a gauge named [hotspot=inventorySize file=0]`inventory.size` that reports the current number of systems in the inventory. The [hotspot=buildWithCallback file=1]`buildWithCallback()` call supplies a callback so the gauge always reflects the latest size.
 
-The [hotspot=counterBuilder1 hotspot=counterBuilder2 hotspot=systemLoadSuccessCountVar hotspot=systemLoadErrorCountVar file=0]`counterBuilder()` calls define two counters, [hotspot=systemLoadSuccessCount file=0]`inventory.system.load.successes` and [hotspot=systemLoadErrorCount file=0]`inventory.system.load.errors`. In [hotspot=getSystemLoadMethod file=0]`getSystemLoad()`, [hotspot=systemLoadSuccessCounterAdd file=0]`systemLoadSuccessCounter` increments after a successful response, and [hotspot=systemLoadErrorCounterAdd file=0]`systemLoadErrorCounter` increments when the request fails. These counters track how many system load retrievals succeeded or failed.
+// The [hotspot=counterBuilder1 hotspot=counterBuilder2 hotspot=systemLoadSuccessCountVar hotspot=systemLoadErrorCountVar file=0]`counterBuilder()` calls define two counters, [hotspot=systemLoadSuccessCount file=0]`inventory.system.load.successes` and [hotspot=systemLoadErrorCount file=0]`inventory.system.load.errors`. In [hotspot=getSystemLoadMethod file=0]`getSystemLoad()`, [hotspot=systemLoadSuccessCounterAdd file=0]`systemLoadSuccessCounter` increments after a successful response, and [hotspot=systemLoadErrorCounterAdd file=0]`systemLoadErrorCounter` increments when the request fails. These counters track how many system load retrievals succeeded or failed.
 
-The [hotspot=histogramBuilder hotspot=systemLoadDurationVar file=0]`histogramBuilder()` call defines a histogram named [hotspot=systemLoadDuration file=0]`inventory.system.load.duration` that measures retrieval latency in seconds. A [hotspot=start file=0]`startTime` is captured before calling the `system` service, and the [hotspot=duration file=0]`duration` is recorded in the histogram after the response is received.
+// The [hotspot=histogramBuilder hotspot=systemLoadDurationVar file=0]`histogramBuilder()` call defines a histogram named [hotspot=systemLoadDuration file=0]`inventory.system.load.duration` that measures retrieval latency in seconds. A [hotspot=start file=0]`startTime` is captured before calling the `system` service, and the [hotspot=duration file=0]`duration` is recorded in the histogram after the response is received.
 
-When naming metrics, OpenTelemetry's https://opentelemetry.io/docs/specs/semconv/general/metrics/[general naming guidelines] are followed to support compatibility across observability tools.
+// When naming metrics, OpenTelemetry's https://opentelemetry.io/docs/specs/semconv/general/metrics/[general naming guidelines] are followed to support compatibility across observability tools.
 
-For more information about OpenTelemetry metrics, see the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/metrics/package-summary.html[OpenTelemetry metrics API documentation^].
+// For more information about OpenTelemetry metrics, see the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/metrics/package-summary.html[OpenTelemetry metrics API documentation^].
 
-You can now view the custom metrics.
+// You can now view the custom metrics.
 
-Visit the http://localhost:9081/inventory/systems/localhost URL to add your local system to the `inventory`. Then, open Grafana at the http://localhost:3000 URL and go to **Drilldown → Metrics** from the left menu. In the metrics view, use the **A_** prefix filters control on the left menu to select `inventory`. At the upper right, set the time range to **Last 5 minutes** and set **Auto refresh interval** to **10s** to watch updates.
+// Visit the http://localhost:9081/inventory/systems/localhost URL to add your local system to the `inventory`. Then, open Grafana at the http://localhost:3000 URL and go to **Drilldown → Metrics** from the left menu. In the metrics view, use the **A_** prefix filters control on the left menu to select `inventory`. At the upper right, set the time range to **Last 5 minutes** and set **Auto refresh interval** to **10s** to watch updates.
 
-OpenTelemetry metrics are exported to the collector every 60 seconds by default, so it may take up to a minute for new metrics to appear. If you don't see them right away, wait for the next update cycle.
+// OpenTelemetry metrics are exported to the collector every 60 seconds by default, so it may take up to a minute for new metrics to appear. If you don't see them right away, wait for the next update cycle.
 
-You see a result similar to the following:
+// You see a result similar to the following:
 
-image::inventory_custom_metrics.png[Inventory custom metrics,align="center"]
+// image::inventory_custom_metrics.png[Inventory custom metrics,align="center"]
 
-Note the difference between the metric names that are defined in code and the names that appear in Grafana. For details on how OpenTelemetry metrics are transformed when exported to Prometheus, see the https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/#otlp-metric-points-to-prometheus[OTLP metric points to Prometheus^] section of the specification.
+// Note the difference between the metric names that are defined in code and the names that appear in Grafana. For details on how OpenTelemetry metrics are transformed when exported to Prometheus, see the https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/#otlp-metric-points-to-prometheus[OTLP metric points to Prometheus^] section of the specification.
 
-To generate more data for the custom metrics, you can add another host by visiting the http://localhost:9081/inventory/systems/127.0.0.1 URL. To simulate a nonexistent host, visit the http://localhost:9081/inventory/systems/unknown URL or any host that is not running on your machine, which increments the error counter. You can also stop and restart the `system` service to simulate an unreachable system in the `inventory`.
+// To generate more data for the custom metrics, you can add another host by visiting the http://localhost:9081/inventory/systems/127.0.0.1 URL. To simulate a nonexistent host, visit the http://localhost:9081/inventory/systems/unknown URL or any host that is not running on your machine, which increments the error counter. You can also stop and restart the `system` service to simulate an unreachable system in the `inventory`.
 
-Because the refresh scheduler runs every 15 seconds, wait a few minutes and refresh the dashboard to observe the metrics change in real time.
+// Because the refresh scheduler runs every 15 seconds, wait a few minutes and refresh the dashboard to observe the metrics change in real time.
 
-// =================================================================================================
-// Testing the application
-// =================================================================================================
-== Testing the application
+// // =================================================================================================
+// // Testing the application
+// // =================================================================================================
+// == Testing the application
 
-Manually verify the telemetry signals by inspecting them in the Grafana dashboard. You can also run the included tests to check the basic functionality of the services. If any of the tests fail, you might have introduced a bug into the code.
+// Manually verify the telemetry signals by inspecting them in the Grafana dashboard. You can also run the included tests to check the basic functionality of the services. If any of the tests fail, you might have introduced a bug into the code.
 
-=== Running the tests
+// === Running the tests
 
-Because you started Open Liberty in dev mode, you can run the tests for the `system` and `inventory` services by pressing the `enter/return` key from the command-line sessions where you started the services.
+// Because you started Open Liberty in dev mode, you can run the tests for the `system` and `inventory` services by pressing the `enter/return` key from the command-line sessions where you started the services.
 
-If the tests pass, you see an output for each service similar to the following:
+// If the tests pass, you see an output for each service similar to the following:
 
-[role="no_copy"]
-----
--------------------------------------------------------
- T E S T S
--------------------------------------------------------
-Running it.io.openliberty.guides.system.SystemEndpointIT
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.445 s -- in it.io.openliberty.guides.system.SystemEndpointIT
+// [role="no_copy"]
+// ----
+// -------------------------------------------------------
+//  T E S T S
+// -------------------------------------------------------
+// Running it.io.openliberty.guides.system.SystemEndpointIT
+// Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.445 s -- in it.io.openliberty.guides.system.SystemEndpointIT
 
-Results:
+// Results:
 
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
-----
+// Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+// ----
 
-[role="no_copy"]
-----
--------------------------------------------------------
- T E S T S
--------------------------------------------------------
-Running it.io.openliberty.guides.inventory.InventoryEndpointIT
-...
-Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.855 s -- in it.io.openliberty.guides.inventory.InventoryEndpointIT
+// [role="no_copy"]
+// ----
+// -------------------------------------------------------
+//  T E S T S
+// -------------------------------------------------------
+// Running it.io.openliberty.guides.inventory.InventoryEndpointIT
+// ...
+// Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.855 s -- in it.io.openliberty.guides.inventory.InventoryEndpointIT
 
-Results:
+// Results:
 
-Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
-----
+// Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
+// ----
 
-When you are done checking out the services, exit dev mode by pressing `CTRL+C` in the shell sessions where you ran the `system` and `inventory` services.
+// When you are done checking out the services, exit dev mode by pressing `CTRL+C` in the shell sessions where you ran the `system` and `inventory` services.
 
-Finally, run the following command to stop the container that you started from the `grafana/otel-lgtm` image in the **Additional prerequisites** section.
+// Finally, run the following command to stop the container that you started from the `grafana/otel-lgtm` image in the **Additional prerequisites** section.
 
-[role="command"]
-----
-docker stop otel-lgtm
-----
+// [role="command"]
+// ----
+// docker stop otel-lgtm
+// ----
 
-// =================================================================================================
-// Great work! You're done!
-// =================================================================================================
+// // =================================================================================================
+// // Great work! You're done!
+// // =================================================================================================
 
-== Great work! You're done!
+// == Great work! You're done!
 
-You just used MicroProfile Telemetry in Open Liberty to go beyond automatic instrumentation by adding custom traces and metrics to your microservices.
+// You just used MicroProfile Telemetry in Open Liberty to go beyond automatic instrumentation by adding custom spans in traces and custom metrics to your microservices.
 
-Try out one of the related MicroProfile guides. These guides demonstrate more technologies that you can learn to expand on what you built in this guide.
+// Try out one of the related MicroProfile guides. These guides demonstrate more technologies that you can learn to expand on what you built in this guide.
 
-include::{common-includes}/attribution.adoc[subs="attributes"]
+// include::{common-includes}/attribution.adoc[subs="attributes"]
