@@ -91,30 +91,30 @@ public class InventoryManager {
         // end::gaugeBuilder[]
 
         // tag::counterBuilder1[]
-        // tag::systemLoadSuccessCount[]
         systemLoadSuccessCounter =
+            // tag::systemLoadSuccessCount[]
             meter.counterBuilder("inventory.system.load.successes")
-        // end::systemLoadSuccessCount[]
+            // end::systemLoadSuccessCount[]
                  .setDescription("Number of successful system load retrievals")
                  .setUnit("1")
                  .build();
         // end::counterBuilder1[]
 
         // tag::counterBuilder2[]
-        // tag::systemLoadErrorCount[]
         systemLoadErrorCounter =
+            // tag::systemLoadErrorCount[]
             meter.counterBuilder("inventory.system.load.errors")
-        // end::systemLoadErrorCount[]
+            // end::systemLoadErrorCount[]
                  .setDescription("Number of failed system load retrievals")
                  .setUnit("1")
                  .build();
         // end::counterBuilder2[]
 
         // tag::histogramBuilder[]
-        // tag::systemLoadDuration[]
         systemLoadDuration =
+            // tag::systemLoadDuration[]
             meter.histogramBuilder("inventory.system.load.duration")
-        // end::systemLoadDuration[]
+            // end::systemLoadDuration[]
                  .setDescription("Duration of system load retrievals")
                  .setUnit("s")
                  .build();
