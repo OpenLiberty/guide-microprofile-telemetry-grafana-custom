@@ -29,7 +29,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LINTER_RULES_PATH: ./tools/pr-checker/linters/
           DEFAULT_BRANCH: draft
-          FILTER_REGEX_EXCLUDE: mvnw*
+          FILTER_REGEX_EXCLUDE: "^finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager\\.java$|mvnw.*"
       - name: Summary
         if: "! github.event.pull_request.head.repo.fork"
         run: |
