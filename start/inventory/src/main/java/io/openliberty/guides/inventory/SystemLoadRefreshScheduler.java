@@ -11,27 +11,28 @@
 // end::copyright[]
 package io.openliberty.guides.inventory;
 
-import java.util.logging.Logger;
-
 import jakarta.ejb.Schedule;
 import jakarta.ejb.Singleton;
 import jakarta.ejb.Startup;
 import jakarta.inject.Inject;
+import jakarta.json.JsonObject;
 
 @Singleton
 @Startup
-public class HealthCheckScheduler {
-
-    private static final Logger LOGGER =
-        Logger.getLogger(HealthCheckScheduler.class.getName());
+public class SystemLoadRefreshScheduler {
 
     @Inject
     private InventoryManager inventoryManager;
 
-    @Schedule(hour = "*", minute = "*", second = "*/30", persistent = false)
-    public void performHealthChecks() {
-        int updated = inventoryManager.refreshAllSystemsHealth();
-        LOGGER.info(
-            "Scheduled health check completed. Updated " + updated + " system(s).");
+    @Schedule(hour = "*", minute = "*", second = "*/15", persistent = false)
+    // tag::refreshSystemLoads[]
+    public void refreshSystemLoads() {
+        for (String host : inventoryManager.getHosts()) {
+            JsonObject load = inventoryManager.getSystemLoad(host);
+            if (load != null) {
+                inventoryManager.set(host, load);
+            }
+        }
     }
+    // end::refreshSystemLoads[]
 }

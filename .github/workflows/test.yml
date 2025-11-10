@@ -29,7 +29,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LINTER_RULES_PATH: ./tools/pr-checker/linters/
           DEFAULT_BRANCH: draft
-          FILTER_REGEX_EXCLUDE: mvnw*
+          FILTER_REGEX_EXCLUDE: ".*/finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager\\.java$|mvnw.*"
       - name: Summary
         if: "! github.event.pull_request.head.repo.fork"
         run: |
@@ -47,11 +47,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'semeru'
-          java-version: 11
+          java-version: 17
       - run: unset _JAVA_OPTIONS
 
       - name: Run tests

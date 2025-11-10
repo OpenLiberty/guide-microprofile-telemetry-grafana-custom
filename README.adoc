@@ -12,14 +12,14 @@
 :page-releasedate: 2025-06-01
 :page-guide-category: microprofile
 :page-essential: false
-:page-description: Learn how to add manual instrumentation to collect custom spans in traces and custom metrics from microservices by using MicroProfile Telemetry and the Grafana stack.
+:page-description: Learn how to add manual instrumentation to collect custom tracing spans and custom metrics from microservices by using MicroProfile Telemetry and the Grafana stack.
 :guide-author: Open Liberty
 :page-tags: ['microprofile']
 :page-permalink: /guides/{projectid}
 :common-includes: https://raw.githubusercontent.com/OpenLiberty/guides-common/prod
-:page-related-guides: [ 'microprofile-telemetry-grafana-automatic', 'microprofile-telemetry-jaeger', 'microprofile-metrics', 'microprofile-health' ]
+:page-related-guides: [ 'microprofile-telemetry-grafana-automatic', 'microprofile-telemetry-jaeger', 'microprofile-metrics', 'rest-intro', 'microprofile-rest-client' ]
 :imagesdir: /img/guide/{projectid}
-:page-seo-title: Adding custom tracing and metrics to Java microservices with MicroProfile Telemetry and Grafana
+:page-seo-title: Adding custom tracing and metrics to Java microservices with MicroProfile Telemetry and the Grafana stack
 :page-seo-description: A tutorial on how to manually instrument Java microservices with MicroProfile Telemetry in Open Liberty to collect custom spans in traces, custom metrics, and visualize them with the Grafana stack that is built on the grafana/otel-lgtm Docker image.
 :source-highlighter: prettify
 = Adding custom tracing and metrics for microservice observability using OpenTelemetry and Grafana
@@ -42,9 +42,13 @@ In this guide, you'll learn how to add manual instrumentation to your microservi
 
 This guide builds on the https://openliberty.io/guides/microprofile-telemetry-grafana-automatic.html[Enabling observability in microservices with traces, metrics, and logs using OpenTelemetry and Grafana^] guide. If you are not familiar with enabling automatic telemetry collection, it will be helpful to read that guide before you proceed.
 
-The diagram shows multiple services, but for simplicity, this guide configures only the `system` and `inventory` services to demonstrate observability in a distributed environment.
+The diagram shows a distributed environment with multiple services. For simplicity, this guide configures only the `system` and `inventory` services.
 
 image::architecture_diagram.png[Application architecture,align="center"]
+
+The `system` service provides system load information, while the `inventory` service retrieves and stores this data by calling the `system` service through a MicroProfile REST Client. Both services expose endpoints built with Jakarta RESTful Web Services.
+
+In addition, the `inventory` service makes periodic background requests to the `system` service every 15 seconds to refresh system load information for all stored systems.
 
 // =================================================================================================
 //  Additional prerequisites 
@@ -84,7 +88,7 @@ include::{common-includes}/gitclone.adoc[]
 
 === Try what you'll build
 
-The `finish` directory in the root of this guide contains the finished application. Give it a try before you proceed.
+The `finish` directory in the root of this guide contains the finished application. The finished application includes manual instrumentation that adds custom spans and custom metrics in addition to the default telemetry. Give it a try before you proceed.
 
 To try out the application, go to the `finish` directory and run the following Maven goal to build the `system` service and deploy it to Open Liberty:
 
@@ -149,40 +153,21 @@ After you see the following message in both command-line sessions, both of your 
 The defaultServer server is ready to run a smarter planet.
 ----
 
-When both services are running, navigate your browser to the http://localhost:9081/inventory/systems/localhost URL.
+When both services are running, visit the http://localhost:9081/inventory/systems/localhost URL. This action triggers the `inventory` service to retrieve and store system load information for `localhost` by making a request to the `system` service at `\http://localhost:9080/system/systemLoad`. The `inventory` service also refreshes stored systems every 15 seconds in the background. These requests are traced and included in the collected telemetry.
 
-When you visit this endpoint, it sends an HTTP GET request to the `inventory` service. The `inventory` service then makes two outbound GET requests to the `system` service. One request goes to the `/system/properties` endpoint, and the other goes to the `/health` endpoint.
+Open the Grafana dashboard at the http://localhost:3000 URL.
 
-In addition, the `inventory` service automatically pings the `system` service every 30 seconds to refresh the health status of all systems in the inventory.
+To view the traces, open the **Explore** view from the left menu. Select **Tempo** as the data source, set **Query type** to `Search`, and click the blue **Run query** button. Find and open the trace named `GET /inventory/systems/{hostname}`. You see a result similar to the following:
 
-To view the traces, go to the http://localhost:3000 URL and follow these steps:
+image::inventory_service_5_spans.png[`GET /inventory/systems/{hostname}` trace,align="center"]
 
-1. Open the **Explore** view from the left menu.
-
-2. Select **Tempo** as the data source.
-
-3. Set **Query type** to `Search`.
-
-4. Click **Run query** at the upper-right corner to list recent traces.
-
-5. Click a trace ID with the `GET /inventory/systems/{hostname}` name that you generated. You see the following result:
-
-+
-image::inventory_default_spans.png[`GET /inventory/systems/{hostname}` trace,align="center"]
-
-+
-The trace contains seven spans, five from the `inventory` service and two from the `system` service. Under **Service & Operation**, you see the spans in this trace. You can inspect each span by clicking it to reveal more detailed information, such as the times that a request was received and a response was sent.
-
-6. Expand the **Node graph** to see the relationship of spans between the `inventory` and `system` microservices.
-
-+
-image::inventory_node_graph.png[`GET /inventory/systems/{hostname}` node graph,align="center"]
+The trace contains five spans, four from the `inventory` service and one from the `system` service. Expand a span to view request and response timing, span attributes, and events. For example, the `Inventory Manager GetSystemLoad` span shows the `hostname` attribute with the value `localhost` and a `Retrieved system load` event.
 
 {empty} +
 
-To view the metrics in Grafana, go to **Drilldown -> Metrics** from the left menu. In the **Filters** section, set `service_name = inventory` to view metrics for the inventory service only.
+To view the metrics, go to **Drilldown → Metrics** from the left menu. In the metrics view, use the **A_** prefix filters control on the left menu to select `inventory`. At the upper right, set the time range to **Last 5 minutes** and set **Auto refresh interval** to **10s** to watch updates. You see a result similar to the following:
 
-image::inventory_metrics.png[Metrics overview,align="center"]
+image::inventory_custom_metrics.png[Inventory custom metrics,align="center"]
 
 {empty} +
 
@@ -222,18 +207,18 @@ mvnw.cmd -pl inventory liberty:stop
 // =================================================================================================
 == Enabling explicit traces
 
-MicroProfile Telemetry automatically instruments Jakarta RESTful Web Services and MicroProfile REST clients. To trace extra operations, such as internal logic or calls to external systems like a database, you can add manual instrumentation to the source code.
+When OpenTelemetry is enabled in Open Liberty, automatic instrumentation applies only to Jakarta RESTful Web Services (JAX-RS) servers and clients, and MicroProfile REST Clients. To capture more details, such as internal logic or interactions with external systems like databases, you can manually instrument your application code to enhance observability.
 
 Navigate to the `start` directory to begin.
 
 system/server.xml
-[source, xml, linenums, role='code_column hide_tags=thirdParty']
+[source, xml, linenums, role='code_column']
 ----
 include::finish/system/src/main/liberty/config/server.xml[]
 ----
 
 inventory/server.xml
-[source, xml, linenums, role='code_column hide_tags=thirdParty']
+[source, xml, linenums, role='code_column']
 ----
 include::finish/inventory/src/main/liberty/config/server.xml[]
 ----
@@ -310,7 +295,7 @@ mvnw.cmd -pl inventory liberty:dev
 ```
 --
 
-After you see the following message, your Liberty instance is ready in dev mode:
+When you see the following message, your Liberty instances are ready in dev mode:
 
 [role="no_copy"]
 ----
@@ -322,7 +307,7 @@ Dev mode holds your command-line session to listen for file changes. Open anothe
 
 === Enabling tracing in Jakarta CDI beans
 
-Now, you can trace your Jakarta CDI beans by annotating a method with the `@WithSpan` annotation.
+You can trace your Jakarta CDI beans by annotating a method with the `@WithSpan` annotation.
 
 [role="code_command hotspot file=0", subs="quotes"]
 ----
@@ -331,105 +316,172 @@ Now, you can trace your Jakarta CDI beans by annotating a method with the `@With
 ----
 
 InventoryManager.java
-[source, java, linenums, role='code_column hide_tags=copyright']
+[source, java, linenums, role='code_column hide_tags=copyright,postConstruct,metricsImports,spanImport,meter,metricsVars,postConstructMethod,spanCurrent1,start,duration,systemLoadSuccessCounterAdd,addEvent1,systemLoadErrorCounterAdd,addEvent2,spanCurrent2,setAttribute1,setAttribute2']
 ----
-include::staging/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
+include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
 ----
 
-The [hotspot=listMethod file=0]`list()`, [hotspot=addMethod file=0]`add()`, and [hotspot=updateMethod file=0]`update()` methods are annotated with the [hotspot=listWithSpan hotspot=addWithSpan hotspot=updateWithSpan file=0]`@WithSpan` annotation. The [hotspot=listWithSpan hotspot=listMethod file=0]`list()` method uses its method name as the default span name, while the [hotspot=addMethod file=0]`add()` and [hotspot=updateMethod file=0]`update()` methods define custom span names, [hotspot=addWithSpan file=0]`Inventory Manager Add` and [hotspot=updateWithSpan file=0]`Inventory Manager Update`, respectively. Each time one of these methods is called, the instrumentation automatically creates a new span.
+The [hotspot=listMethod file=0]`list()`, [hotspot=getSystemLoadMethod file=0]`getSystemLoad()`, and [hotspot=setMethod file=0]`set()` methods are annotated with the [hotspot=listWithSpan hotspot=getSystemLoadWithSpan hotspot=setWithSpan file=0]`@WithSpan` annotation. In this example, the default span name assigned to the [hotspot=listWithSpan hotspot=listMethod file=0]`list()` method is automatically generated through the instrumentation. You can also provide a custom span name, such as [hotspot=getSystemLoadWithSpan file=0]`Inventory Manager GetSystemLoad` for the [hotspot=getSystemLoadMethod file=0]`getSystemLoad()` method, and [hotspot=setWithSpan file=0]`Inventory Manager Set` for the [hotspot=setMethod file=0]`set()` method. Each time one of these methods is called, the annotation creates a span and establishes the appropriate relationships with the current trace context.
 
-To enrich spans with more context, you can annotate method parameters with the [hotspot=spanAttribute1 hotspot=spanAttribute2 file=0]`@SpanAttribute` annotation. In this example, the `host` parameter in the [hotspot=addMethod file=0]`add()` and [hotspot=updateMethod file=0]`update()` methods is labeled as [hotspot=spanAttribute1 hotspot=spanAttribute2 file=0]`hostname` in the span.
+Optionally, you can include parameters and their values in the span by using the [hotspot=spanAttribute1 hotspot=spanAttribute2 file=0]`@SpanAttribute` annotation. For example, the [hotspot=spanAttribute1 hotspot=spanAttribute2 file=0]`@SpanAttribute` annotations on the [hotspot=spanAttribute1 hotspot=spanAttribute2 file=0]`host` parameter capture its value as the [hotspot=spanAttribute1 hotspot=spanAttribute2 file=0]`hostname` attribute in the spans generated by the [hotspot=getSystemLoadMethod file=0]`getSystemLoad()` and [hotspot=setMethod file=0]`set()` methods.
+
+To learn more about how to use OpenTelemetry annotations to instrument code, see the https://opentelemetry.io/docs/instrumentation/java/automatic/annotations/[OpenTelemetry Annotations^] documentation.
 
 You can now view the traces that are generated by the `@WithSpan` annotation.
 
-Open the http://localhost:9081/inventory/systems URL in your browser to trigger a trace, then open the Grafana dashboard at the http://localhost:3000 URL. In the **Explore** view, select **Tempo** as the data source, set **Query type** to `Search`, and click **Run query**. Select a trace ID with the `GET /inventory/systems` name that you generated. You see the result as:
+Visit the http://localhost:9081/inventory/systems URL to view the inventory, then open the Grafana dashboard at the http://localhost:3000 URL. In the **Explore** view, select **Tempo** as the data source, set **Query type** to `Search`, and click the blue **Run query** button. Find and click the trace ID for the request named `GET /inventory/systems`. You see the following result:
 
 image::inventory_manager_list_span.png[Spans generated when visiting `GET /inventory/systems`,align="center"]
 
-Verify that there are two spans from the `inventory` service. Expand each span to view its details. You see the `InventoryManager.list` span that is created by the [hotspot=listWithSpan file=0]`@WithSpan` annotation.
+Verify that there are two spans from the `inventory` service. You see the `InventoryManager.list` span, which is created by the [hotspot=listWithSpan file=0]`@WithSpan` annotation.
 
-To check out the information generated by the `@SpanAttribute` annotation, visit the http://localhost:9081/inventory/systems/localhost URL, then rerun your Grafana query. Select a trace ID with the `GET /inventory/systems/{hostname}` name that you generated. You see the following result:
+To check out the information generated by the `@SpanAttribute` annotation, visit the http://localhost:9081/inventory/systems/localhost URL to fetch and store the `localhost` system information in `inventory`. Rerun your Grafana query, then find and click the trace ID for the request named `GET /inventory/systems/{hostname}`. You see the following result:
 
-image::inventory_service_6_spans.png[Spans generated when visiting `GET /inventory/systems/{hostname}`,align="center"]
+image::inventory_service_5_spans.png[Spans from `GET /inventory/systems/{hostname}`,align="center"]
 
-Verify that there are four spans from the `inventory` service and two spans from the `system` service. Expand the `Inventory Manager Add` span and its **Span Attributes** field. You can see the `hostname` attribute with the `localhost` value that is created by the [hotspot=spanAttribute1 file=0]`@SpanAttribute` annotation.
+Verify that there are four spans from the `inventory` service and one from the `system` service. Expand the `Inventory Manager GetSystemLoad` and the `Inventory Manager Set` spans and check their **Span attributes** field. You see the `hostname` attribute with the value `localhost` in each span, created by the [hotspot=spanAttribute1 hotspot=spanAttribute2 file=0]`@SpanAttribute` annotation.
 
-image::inventory_manager_add_spanattribute.png[Inventory Manager Add span attribute,align="center"]
+image::inventory_manager_span_attribute.png[Span attributes from `GET /inventory/systems/{hostname}`,align="center"]
+
 {empty} +
 
-If you visit the http://localhost:9081/inventory/systems/localhost URL again, the trace shows the `Inventory Manager Update` span instead.
+=== Creating custom spans with the Tracer API
 
-=== Creating custom spans
+Open Liberty provides access to the underlying OpenTelemetry Tracer instance through the MicroProfile Telemetry feature, allowing you to manually create spans in your application. You can inject the Tracer into any class to record custom spans.
 
-The MicroProfile Telemetry specification makes the underlying OpenTelemetry Tracer instance available. You can create spans manually by injecting the OpenTelemetry Tracer into your application.
+// file 0
+SystemLoadRefreshScheduler.java
+[source, java, linenums, role='code_column hide_tags=copyright']
+----
+include::start/inventory/src/main/java/io/openliberty/guides/inventory/SystemLoadRefreshScheduler.java[]
+----
+
+// file 1
+InventoryManager.java
+[source, java, linenums, role='code_column hide_tags=copyright,postConstruct,metricsImports,spanImport,meter,metricsVars,postConstructMethod,spanCurrent1,start,duration,systemLoadSuccessCounterAdd,addEvent1,systemLoadErrorCounterAdd,addEvent2,spanCurrent2,setAttribute1,setAttribute2']
+----
+include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
+----
+
+When you explore the application traces in Grafana, you can see traces named `Inventory Manager GetSystemLoad` and `Inventory Manager Set` continuously generated by the `inventory` service. These traces originate from the [hotspot=refreshSystemLoads file=0]`SystemLoadRefreshScheduler.refreshSystemLoads()` method, which runs every 15 seconds to fetch load for all stored systems and update the inventory by calling [hotspot=getSystemLoadMethod file=1]`getSystemLoad()` and [hotspot=setMethod file=1]`set()` in the [hotspot file=1]`InventoryManager` class.
+
+Because these methods are annotated for tracing, each call creates a span. If at least one system exists in the `inventory`, such as the `localhost` system that is added, the scheduler repeatedly invokes these methods, generating spans on every cycle.
+
+To make these refresh operations easier to identify, use the Tracer API to create a custom root span for the `refreshSystemLoads()` method.
+
+[role="code_command hotspot file=2", subs="quotes"]
+----
+#Replace the `SystemLoadRefreshScheduler` class:#
+`inventory/src/main/java/io/openliberty/guides/inventory/SystemLoadRefreshScheduler.java`
+----
+
+// file 2
+SystemLoadRefreshScheduler.java
+[source, java, linenums, role='code_column hide_tags=copyright']
+----
+include::finish/inventory/src/main/java/io/openliberty/guides/inventory/SystemLoadRefreshScheduler.java[]
+----
+
+The OpenTelemetry [hotspot=tracer file=2]`Tracer` bean is injected into the [hotspot file=2]`SystemLoadRefreshScheduler` class to manually instrument code for trace collection. The [hotspot=refreshSystemLoads file=2]`refreshSystemLoads()` method creates a custom span named [hotspot=span file=2]`RefreshingSystemLoads` using the `spanBuilder()` and `startSpan()` methods to track each periodic update of system load data.
+
+After the span is created, the [hotspot=scope file=2]`makeCurrent()` method sets it as the current span. The current span serves as the parent for any new spans that are created in the same thread, whether automatically by Open Liberty or manually through the API. The `makeCurrent()` method returns a `Scope` object that must be closed to restore the previous context. The code uses a [hotspot=try file=2]`try-with-resources` block so that the `Scope` is closed automatically at the end of the block.
+
+The OpenTelemetry Span API is used to record runtime information within the active span. The [hotspot=setAttribute1 hotspot=setAttribute2 file=2]`setAttribute()` method adds key-value pairs that persist for the duration of the span, such as the [hotspot=setAttribute1 file=2]`systems.total` attribute, which stores the total number of systems in the current `inventory`, and the [hotspot=setAttribute2 file=2]`systems.refreshed` attribute, which records the number of systems that were successfully refreshed. The [hotspot=addEvent1 hotspot=addEvent2 file=2]`addEvent()` method records events within the span. In this example, the span includes an event when no systems are found to refresh or the number of systems that were successfully refreshed.
+
+Each span must be properly ended by calling [hotspot=endSpan file=2]`end()` on the span. If the span is not ended, it will not be recorded or displayed in the trace. The method ensures that [hotspot=endSpan file=2]`end()` is always called by placing it inside a [hotspot=finally file=2]`finally` block.
+
+Because you updated the `inventory` service, its data is cleared.
+
+To view the trace data from the `RefreshingSystemLoads` span, open the Grafana dashboard at the http://localhost:3000 URL. In the **Explore** view, select the **Tempo** data source and click the blue **Run query** button. Select a trace named `RefreshingSystemLoads`. You should see one span. Expand it and check the **Span attributes** field, both the `systems.total` and `systems.refreshed` attributes show `0`. In the **Events** field, you see `No systems found to refresh`.
+
+Next, visit the http://localhost:9081/inventory/systems/localhost URL to retrieve and add the `localhost` system to the `inventory`. Wait for about 15 seconds, then return to the Grafana dashboard and rerun the query. Select the latest `RefreshingSystemLoads` trace, which appears after a `GET /inventory/systems/{hostname}` trace. You now see five spans, four from the `inventory` service and one from the `system` service. Expand the `RefreshingSystemLoads` span and check the **Span attributes** and **Events** fields. You see that the `systems.total` and `systems.refreshed` attributes both have a value of `1`, and the **Events** field shows `Refreshed system load for 1 hosts`.
+
+image::inventory_refreshing_system_loads_span.png[RefreshingSystemLoads span,align="center"]
+
+{empty} +
+
+To simulate a case where the `localhost` system in the `inventory` is unavailable, stop the Liberty instance for the `system` microservice by pressing `CTRL+C` in its dev mode console. Wait for 15 seconds and rerun the Grafana query. Select the latest trace named `RefreshingSystemLoads`. This time, you see two spans. Expand the `RefreshingSystemLoads` span and check the **Span attributes** and **Events** fields. The `systems.total` attribute has a value of `1`, but `systems.refreshed` shows `0`, and the **Events** field shows `Refreshed system load for 0 hosts`.
+
+=== Enriching existing spans
+
+You can add more context to an existing span to make your traces easier to interpret.
+
+When viewing the `RefreshingSystemLoads` trace where the `localhost` system is down, you see only two spans in the trace. In contrast, when the system is running, the trace includes five spans. These include spans from both the `inventory` and `system` services for retrieving system load data, and an `Inventory Manager Set` span for updating the inventory.
+
+Rerun the same Grafana query in the **Explore** view, then select a trace named `RefreshingSystemLoads`. Expand the `Inventory Manager GetSystemLoad` span, you can see that the trace does not indicate whether the request to the `system` service succeeded or failed.
+
+You can add additional context to a span by using the `Span.current()` method to retrieve the active span and record events or attributes.
 
 [role="code_command hotspot file=0", subs="quotes"]
 ----
-#Replace the `InventoryResource` class:#
-`inventory/src/main/java/io/openliberty/guides/inventory/InventoryResource.java`
+#Replace the `InventoryManager` class.#
+`inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java`
 ----
 
-InventoryResource.java
-[source, java, linenums, role='code_column hide_tags=copyright']
+InventoryManager.java
+[source, java, linenums, role='code_column hide_tags=copyright,postConstruct,metricsImports,meter,metricsVars,postConstructMethod,start,duration,systemLoadSuccessCounterAdd,systemLoadErrorCounterAdd']
 ----
-include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryResource.java[]
+include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
 ----
 
-The OpenTelemetry [hotspot=tracer file=0]`Tracer` bean is injected into the [hotspot file=0]`InventoryResource` class to manually instrument your code for trace collection. Before the [hotspot=manager hotspot=getHealth file=0]`InventoryManager` calls the `system` service to check its health status, it creates and starts a span that is named [hotspot=getPropertiesSpan file=0]`GettingProperties`.
+The [hotspot=spanCurrent1 hotspot=spanCurrent2 file=0]`Span.current()` method is used to retrieve the current active span so that additional data can be added to it. The [hotspot=addEvent1 hotspot=addEvent2 file=0]`addEvent()` method adds events to the `Inventory Manager GetSystemLoad` span when system load data is received or when it fails to get the system load from the [hotspot=getSystemLoadFromSystem file=0]`system` service. The [hotspot=setAttribute1 hotspot=setAttribute2 file=0]`setAttribute()` method adds attributes to the `Inventory Manager Set` span to record when a system is first added to the inventory or when its information is updated.
 
-Each span must be ended by calling [hotspot=end file=0]`end()`. To ensure that the span always completes, the call is placed inside a [hotspot=finally file=0]`finally` block.
+You can now view the new traces with the added span details. Restart the dev mode for the `system` microservice:
 
-Calling the [hotspot=scope file=0]`makeCurrent()` method sets the span as the current span. This method returns a `Scope` that must be closed to restore the previous context. A [hotspot=try file=0]`try-with-resources` block is used so the scope closes automatically.
+include::{common-includes}/os-tabs.adoc[]
 
-Calling the [hotspot=addEvent1 hotspot=addEvent2 file=0]`addEvent()` method adds events to the span. In this example, the code adds one event when the properties are successfully received, and another when the request fails.
+[.tab_content.windows_section]
+--
+[role='command']
+```
+mvnw.cmd -pl system liberty:dev
+```
+--
 
-For more information about OpenTelemetry distributed tracing, see the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/trace/package-summary.html[OpenTelemetry distributed tracing API documentation^].
+[.tab_content.mac_section]
+--
+[role='command']
+```
+./mvnw -pl system liberty:dev
+```
+--
 
-To see these spans and events, visit the http://localhost:9081/inventory/systems/localhost URL and open the Grafana dashboard at the http://localhost:3000 URL. In the **Explore** view, select the **Tempo** data source and **Run query**. Select a trace ID with the `GET /inventory/systems/{hostname}` name that you generated. You see the `GettingProperties` span:
+[.tab_content.linux_section]
+--
+[role='command']
+```
+./mvnw -pl system liberty:dev
+```
+--
 
-image::inventory_getting_properties_span.png[Inventory Manager GettingProperties span,align="center",align="center"]
+When the `system` service is running again, visit the http://localhost:9081/inventory/systems/localhost URL. Open the Grafana dashboard and rerun the same query in the **Explore** view. Find and open the trace for `GET /inventory/systems/{hostname}`. You see the following result:
 
-Expand the `GettingProperties` span and check the **Events** section to see the `Received properties` event:
+image::inventory_service_5_spans_detailed.png[Spans details from `GET /inventory/systems/{hostname}`,align="center"]
 
-image::inventory_received_properties_event.png[Inventory Manager Received properties event,align="center",align="center"]
+Expand the `Inventory Manager GetSystemLoad` span to see the [hotspot=addEvent1 file=0]`Retrieved system load` event. Expand the `Inventory Manager Set` span to see the `operation` attribute set to [hotspot=setAttribute2 file=0]`add`.
+
+If you revisit the http://localhost:9081/inventory/systems/localhost URL, the `Inventory Manager Set` span from the `GET /inventory/systems/{hostname}` trace now shows the `operation` attribute as [hotspot=setAttribute1 file=0]`update`.
+
 {empty} +
 
-To test a failure case, go to the http://localhost:9081/inventory/systems/unknown URL and run the same trace query in Grafana. Select a trace ID with the `GET /inventory/systems/{hostname}` name that you generated. The trace contains two spans from the `inventory` service, including the `GettingProperties` span. Expand this span and check the **Events** section to see the `Cannot get properties` event:
+Next, visit the http://localhost:9081/inventory/systems/unknown URL to simulate a request for a nonexistent host. Rerun your Grafana query and open the latest trace for `GET /inventory/systems/{hostname}`. In the `Inventory Manager GetSystemLoad` span, you now see the [hotspot=addEvent2 file=0]`Cannot get system load` event. Because the request failed, the [hotspot=setMethod file=0]`set()` method is not called to add or update any system in the `inventory`.
 
-image::inventory_cannot_get_properties_event.png[Inventory Manager Cannot get properties event,align="center"]
+image::inventory_manager_getsystemload_failure.png[Inventory Manager GetSystemLoad span failure event,align="center"]
+
+For more information about OpenTelemetry distributed tracing, see the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/trace/package-summary.html[OpenTelemetry distributed tracing API documentation^].
 
 // =================================================================================================
 // Enabling explicit metrics
 // =================================================================================================
 == Enabling explicit metrics
 
-In addition to the runtime metrics automatically collected with MicroProfile Telemetry, you can define custom metrics in your application by using the OpenTelemetry API.
+When you enable the MicroProfile Telemetry feature, Open Liberty automatically collects and exports a default set of metrics. For the full list, see the https://openliberty.io/docs/latest/mptelemetry-metrics-list.html[MicroProfile Telemetry metrics reference list^]. In addition, you can create custom metrics in your application by using the OpenTelemetry Metrics API.
 
-You can manually instrument your application to define custom metrics.
+To define custom metrics, instrument your application code manually.
 
 [role="code_command hotspot file=0", subs="quotes"]
 ----
-#Replace the HealthCheckScheduler class.#
-`inventory/src/main/java/io/openliberty/guides/inventory/HealthCheckScheduler.java`
-----
-
-HealthCheckScheduler.java
-[source, Java, linenums, role='code_column hide_tags=copyright']
-----
-include::finish/inventory/src/main/java/io/openliberty/guides/inventory/HealthCheckScheduler.java[]
-----
-
-The OpenTelemetry [hotspot=meter file=0]`Meter` bean is injected into the [hotspot file=0]`HealthCheckScheduler` class to define and collect application-specific metrics. This interface provides access to the OpenTelemetry metrics API, including instruments such as counters, histograms, and gauges to monitor application behavior and performance.
-
-The [hotspot=counterBuilder file=0]`Meter.counterBuilder()` method defines a counter instrument named [hotspot=schedulerRunCounter file=0]`inventory.health.check.scheduler.runs`. This metric records the total number of health check scheduler executions over time.
-
-The [hotspot=histogramBuilder file=0]`Meter.histogramBuilder()` method defines a histogram instrument named [hotspot=schedulerDuration file=0]`inventory.health.check.scheduler.duration`. This metric measures the time taken for each scheduled health check that is run. The [hotspot=start file=0]`start` time is captured when the [hotspot=performHealthChecks file=0]`performHealthChecks()` method begins, and the [hotspot=duration file=0]`duration` is calculated and recorded when the run completes.
-
-When naming metrics, OpenTelemetry's https://opentelemetry.io/docs/specs/semconv/general/metrics/[general naming guidelines] are followed to support compatibility across observability tools.
-
-[role="code_command hotspot file=1", subs="quotes"]
-----
-#Replace the InventoryManager class.#
+#Replace the `InventoryManager` class.#
 `inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java`
 ----
 
@@ -439,40 +491,73 @@ InventoryManager.java
 include::finish/inventory/src/main/java/io/openliberty/guides/inventory/InventoryManager.java[]
 ----
 
-The OpenTelemetry [hotspot=meter file=1]`Meter` bean is injected and used to define a gauge instrument by using the [hotspot=gaugeBuilder file=1]`Meter.gaugeBuilder()` method. The gauge is named [hotspot=inventorySize file=1]`inventory.size` and reports the current number of systems in the inventory. The [hotspot=buildWithCallback file=1]`buildWithCallback()` method updates the gauge dynamically so that it always reflects the latest inventory size.
+The OpenTelemetry [hotspot=meter file=0]`Meter` bean is injected into the [hotspot file=0]`InventoryManager` class. This bean provides the Metrics API to create instruments such as gauges, counters, and histograms.
 
-To learn more about how to define and use metrics in your application, refer to the https://opentelemetry.io/docs/languages/java/api/#meter[Meter operations^] for a full list of available metrics, or the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/metrics/package-summary.html[OpenTelemetry metrics API reference^].
+The [hotspot=gaugeBuilder file=0]`gaugeBuilder()` call defines a gauge named [hotspot=inventorySize file=0]`inventory.size` that reports the current number of systems in the inventory. The [hotspot=buildWithCallback file=0]`buildWithCallback()` call supplies a callback so the gauge always reflects the latest size.
 
-To view the custom metrics, first trigger some activity in the application by visiting the following URLs in your browser:
+The [hotspot=systemLoadSuccessCountVar hotspot=systemLoadErrorCountVar hotspot=counterBuilder1 hotspot=counterBuilder2 file=0]`counterBuilder()` calls define two counters, [hotspot=systemLoadSuccessCount file=0]`inventory.system.load.successes` and [hotspot=systemLoadErrorCount file=0]`inventory.system.load.errors`. In [hotspot=getSystemLoadMethod file=0]`getSystemLoad()`, [hotspot=systemLoadSuccessCounterAdd file=0]`systemLoadSuccessCounter` increments after a successful response, and [hotspot=systemLoadErrorCounterAdd file=0]`systemLoadErrorCounter` increments when the request fails. These counters track how many system load retrievals succeeded or failed.
 
-* Visit the http://localhost:9081/inventory/systems/localhost URL to add your local system properties to the inventory.
+The [hotspot=systemLoadDurationVar hotspot=histogramBuilder file=0]`histogramBuilder()` call defines a histogram named [hotspot=systemLoadDuration file=0]`inventory.system.load.duration` that measures retrieval latency in seconds. A [hotspot=start file=0]`startTime` is captured before calling the `system` service, and the [hotspot=duration file=0]`duration` is recorded in the histogram after the response is received.
 
-* Visit the http://localhost:9081/inventory/systems/127.0.0.1 URL to add the system properties for host `127.0.0.1` to the inventory.
+When naming metrics, OpenTelemetry's https://opentelemetry.io/docs/specs/semconv/general/metrics/[general naming guidelines] are followed to support compatibility across observability tools.
 
-* Visit the http://localhost:9080/system/unhealthy URL to set both `localhost` and host `127.0.0.1` health status to `DOWN`.
+For more information about OpenTelemetry metrics, see the https://www.javadoc.io/doc/io.opentelemetry/opentelemetry-api/latest/io/opentelemetry/api/metrics/package-summary.html[OpenTelemetry metrics API documentation^].
 
-Next, open the Grafana dashboard at the http://localhost:3000 URL. From the left menu, navigate to **Drilldown -> Metrics**, then and enter `inventory` in the **Quick search metrics** field to find metrics for the `inventory` service. In the upper-right corner, click **Set auto refresh interval** and choose **10s** to see live updates.
+You can now view the custom metrics.
+
+Visit the http://localhost:9081/inventory/systems/localhost URL to add your local system to the `inventory`. Then, open Grafana at the http://localhost:3000 URL and go to **Drilldown → Metrics** from the left menu. In the metrics view, use the **A_** prefix filters control on the left menu to select `inventory`. At the upper right, set the time range to **Last 5 minutes** and set **Auto refresh interval** to **10s** to watch updates.
 
 OpenTelemetry metrics are exported to the collector every 60 seconds by default, so it may take up to a minute for new metrics to appear. If you don't see them right away, wait for the next update cycle.
 
-You see a result similar to this:
+You see a result similar to the following:
 
 image::inventory_custom_metrics.png[Inventory custom metrics,align="center"]
 
-Note the difference between the metric name that you define and the name that is displayed in Grafana. For details on how OpenTelemetry metrics are transformed when exported to Prometheus, see the https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/#otlp-metric-points-to-prometheus[OTLP Metric points to Prometheus^] section of the OpenTelemetry specification.
+Note the difference between the metric names that are defined in code and the names that appear in Grafana. For details on how OpenTelemetry metrics are transformed when exported to Prometheus, see the https://opentelemetry.io/docs/specs/otel/compatibility/prometheus_and_openmetrics/#otlp-metric-points-to-prometheus[OTLP metric points to Prometheus^] section of the specification.
 
-Because the health check scheduler runs every [hotspot=scheduleAnnotation file=0]`30` seconds, you can wait a few minutes and refresh the dashboard to watch the metrics change in real time.
+To generate more data for the custom metrics, you can add another host by visiting the http://localhost:9081/inventory/systems/127.0.0.1 URL. To simulate a nonexistent host, visit the http://localhost:9081/inventory/systems/unknown URL or any host that is not running on your machine, which increments the error counter. You can also stop and restart the `system` service to simulate an unreachable system in the `inventory`.
+
+Because the refresh scheduler runs every 15 seconds, wait a few minutes and refresh the dashboard to observe the metrics change in real time.
 
 // =================================================================================================
-// Testing the application 
+// Testing the application
 // =================================================================================================
-== Testing the application 
+== Testing the application
 
 Manually verify the telemetry signals by inspecting them in the Grafana dashboard. You can also run the included tests to check the basic functionality of the services. If any of the tests fail, you might have introduced a bug into the code.
 
 === Running the tests
 
 Because you started Open Liberty in dev mode, you can run the tests for the `system` and `inventory` services by pressing the `enter/return` key from the command-line sessions where you started the services.
+
+If the tests pass, you see an output for each service similar to the following:
+
+[role="no_copy"]
+----
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running it.io.openliberty.guides.system.SystemEndpointIT
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.445 s -- in it.io.openliberty.guides.system.SystemEndpointIT
+
+Results:
+
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+----
+
+[role="no_copy"]
+----
+-------------------------------------------------------
+ T E S T S
+-------------------------------------------------------
+Running it.io.openliberty.guides.inventory.InventoryEndpointIT
+...
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.855 s -- in it.io.openliberty.guides.inventory.InventoryEndpointIT
+
+Results:
+
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
+----
 
 When you are done checking out the services, exit dev mode by pressing `CTRL+C` in the shell sessions where you ran the `system` and `inventory` services.
 
@@ -489,7 +574,7 @@ docker stop otel-lgtm
 
 == Great work! You're done!
 
-You just used MicroProfile Telemetry in Open Liberty to go beyond automatic instrumentation by adding custom traces and metrics to your microservices.
+You just used MicroProfile Telemetry in Open Liberty to extend automatic instrumentation with custom tracing spans and custom metrics, and you visualized the telemetry in Grafana.
 
 Try out one of the related MicroProfile guides. These guides demonstrate more technologies that you can learn to expand on what you built in this guide.
 
