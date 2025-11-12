@@ -1,11 +1,20 @@
 #!/bin/bash
-while getopts t:d: flag; do
+while getopts t:d:b:j: flag; do
     case "${flag}" in
     t) DATE="${OPTARG}" ;;
     d) DRIVER="${OPTARG}" ;;
-    *) echo "Invalid option";;
+    b) BUILD="${OPTARG}" ;;
+    j) JDK_LEVEL="${OPTARG}" ;;
+    *) echo "Invalid option input" ;;
     esac
 done
+
+echo "Testing daily build image"
+
+if [ "$JDK_LEVEL" == "11" ]; then
+    echo "Test skipped because the guide does not support Java 11."
+    exit 0
+fi
 
 sed -i "\#<artifactId>liberty-maven-plugin</artifactId>#a<configuration><install><runtimeUrl>https://public.dhe.ibm.com/ibmdl/export/pub/software/openliberty/runtime/nightly/$DATE/$DRIVER</runtimeUrl></install></configuration>" inventory/pom.xml system/pom.xml ../start/inventory/pom.xml ../start/system/pom.xml
 cat inventory/pom.xml system/pom.xml ../start/inventory/pom.xml ../start/system/pom.xml
