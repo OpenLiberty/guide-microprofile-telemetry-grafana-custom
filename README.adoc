@@ -386,7 +386,7 @@ The OpenTelemetry [hotspot=tracer file=2]`Tracer` bean is injected into the [hot
 
 After the span is created, the [hotspot=scope file=2]`makeCurrent()` method sets it as the current span. The current span serves as the parent for any new spans that are created in the same thread, whether automatically by Open Liberty or manually through the API. The `makeCurrent()` method returns a `Scope` object that must be closed to restore the previous context. The code uses a [hotspot=try file=2]`try-with-resources` block so that the `Scope` is closed automatically at the end of the block.
 
-The OpenTelemetry Span API is used to record runtime information within the active span. The [hotspot=setAttribute1 hotspot=setAttribute2 file=2]`setAttribute()` method adds key-value pairs that persist for the duration of the span, such as the [hotspot=setAttribute1 file=2]`systems.total` attribute, which stores the total number of systems in the current `inventory`, and the [hotspot=setAttribute2 file=2]`systems.refreshed` attribute, which records the number of systems that were successfully refreshed. The [hotspot=addEvent1 hotspot=addEvent2 file=2]`addEvent()` method records events within the span. In this example, the span includes an event when no systems are found to refresh or the number of systems that were successfully refreshed.
+The OpenTelemetry Span API is used to record runtime information within the active span. The [hotspot=setAttribute1 hotspot=setAttribute2 file=2]`setAttribute()` method adds key-value pairs that persist for the duration of the span, such as the [hotspot=setAttribute1 file=2]`systems.total` attribute, which stores the total number of systems in the current `inventory`, and the [hotspot=setAttribute2 file=2]`systems.refreshed` attribute, which records the number of systems that were successfully refreshed. The [hotspot=addEvent1 hotspot=addEvent2 file=2]`addEvent()` method records events within the span. In this example, the span either includes an event when no systems are found to refresh or includes the total number of systems that were successfully refreshed.
 
 Each span must be properly ended by calling [hotspot=endSpan file=2]`end()` on the span. If the span is not ended, it will not be recorded or displayed in the trace. The method ensures that [hotspot=endSpan file=2]`end()` is always called by placing it inside a [hotspot=finally file=2]`finally` block.
 
@@ -404,9 +404,7 @@ To simulate a case where the `localhost` system in the `inventory` is unavailabl
 
 === Enriching existing spans
 
-You can add more context to an existing span to make your traces easier to interpret.
-
-When viewing the `RefreshingSystemLoads` trace where the `localhost` system is down, you see only two spans in the trace. In contrast, when the system is running, the trace includes five spans. These include spans from both the `inventory` and `system` services for retrieving system load data, and an `Inventory Manager Set` span for updating the inventory.
+You can add more context to an existing span to make your traces easier to interpret. When viewing the `RefreshingSystemLoads` trace where the `localhost` system is down, you see only two spans in the trace. In contrast, when the system is running, the trace includes five spans. These include spans from both the `inventory` and `system` services for retrieving system load data, and an `Inventory Manager Set` span for updating the inventory.
 
 Rerun the same Grafana query in the **Explore** view, then select a trace named `RefreshingSystemLoads`. Expand the `Inventory Manager GetSystemLoad` span, you can see that the trace does not indicate whether the request to the `system` service succeeded or failed.
 
