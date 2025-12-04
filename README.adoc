@@ -9,7 +9,7 @@
 :page-layout: guide-multipane
 :projectid: microprofile-telemetry-grafana-custom
 :page-duration: 25 minutes
-:page-releasedate: 2025-06-01
+:page-releasedate: 2025-12-05
 :page-guide-category: microprofile
 :page-essential: false
 :page-description: Learn how to add manual instrumentation to collect custom tracing spans and custom metrics from microservices by using MicroProfile Telemetry and the Grafana stack.
