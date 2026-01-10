@@ -1,4 +1,4 @@
-// Copyright (c) 2025 IBM Corporation and others.
+// Copyright (c) 2026 IBM Corporation and others.
 // Licensed under Creative Commons Attribution-NoDerivatives
 // 4.0 International (CC BY-ND 4.0)
 // https://creativecommons.org/licenses/by-nd/4.0/
@@ -12,7 +12,7 @@
 :page-releasedate: 2025-12-05
 :page-guide-category: microprofile
 :page-essential: false
-:page-description: Learn how to add manual instrumentation to collect custom tracing spans and custom metrics from microservices by using MicroProfile Telemetry and the Grafana stack.
+:page-description: Learn how to add manual instrumentation to collect custom tracing spans and custom metrics from microservices by using MicroProfile Telemetry.
 :guide-author: Open Liberty
 :page-tags: ['microprofile']
 :page-permalink: /guides/{projectid}
@@ -22,12 +22,12 @@
 :page-seo-title: Adding custom tracing and metrics to Java microservices with MicroProfile Telemetry and the Grafana stack
 :page-seo-description: A tutorial on how to manually instrument Java microservices with MicroProfile Telemetry in Open Liberty to collect custom spans in traces, custom metrics, and visualize them with the Grafana stack that is built on the grafana/otel-lgtm Docker image.
 :source-highlighter: prettify
-= Adding custom tracing and metrics for microservice observability using OpenTelemetry and Grafana
+= Adding custom tracing and metrics for microservice observability using OpenTelemetry
 
 [.hidden]
 NOTE: This repository contains the guide documentation source. To view the guide in published form, view it on the https://openliberty.io/guides/{projectid}.html[Open Liberty website].
 
-Learn how to add manual instrumentation to collect custom spans in traces and custom metrics from microservices by using MicroProfile Telemetry and the Grafana stack.
+Learn how to add manual instrumentation to collect custom spans in traces and custom metrics from microservices by using MicroProfile Telemetry.
 
 // =================================================================================================
 //  What you'll learn
