@@ -1,7 +1,7 @@
 <server description="system service">
 
     <featureManager>
-        <platform>jakartaee-10.0</platform>
+        <platform>jakartaee-11.0</platform>
         <!-- tag::microprofile[] -->
         <platform>microprofile-7.1</platform>
         <!-- end::microprofile[] -->
